@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/zklevsha/go-musthave-diploma/internal/structs"
 )
 
 type DBConnector struct {
@@ -14,13 +15,44 @@ type DBConnector struct {
 	initalized bool
 }
 
-// func (d *DBConnector) checkInit() error {
-// 	if !d.initalized {
-// 		err := fmt.Errorf("DbConnector is not initiliazed (run DBConnector.Init() to initilize)")
-// 		return err
-// 	}
-// 	return nil
-// }
+func (d *DBConnector) checkInit() error {
+	if !d.initalized {
+		err := fmt.Errorf("DbConnector is not initiliazed (run DBConnector.Init() to initilize)")
+		return err
+	}
+	return nil
+}
+
+func (d *DBConnector) Register(login string, password string) error {
+	err := d.checkInit()
+	if err != nil {
+		return err
+	}
+
+	conn, err := d.Pool.Acquire(d.Ctx)
+	if err != nil {
+		return fmt.Errorf("failed to acquire connection: %s", err.Error())
+	}
+	defer conn.Release()
+
+	// Check if user don`t exists
+	var counter int
+	sql := `select count(id) from users where login=$1;`
+	row := conn.QueryRow(d.Ctx, sql, login)
+	err = row.Scan(&counter)
+	if err != nil {
+		return fmt.Errorf("failed to query users table: %s", err.Error())
+	}
+	if counter != 0 {
+		return structs.ErrUserAlreadyExists
+	}
+
+	// adding new user
+	sql = `INSERT INTO users (login, password)
+		   VALUES($1, $2);`
+	_, err = conn.Exec(d.Ctx, sql, login, password)
+	return err
+}
 
 func (d *DBConnector) Init() error {
 	p, err := pgxpool.Connect(d.Ctx, d.DSN)
@@ -52,7 +84,7 @@ func (d *DBConnector) CreateTables() error {
 
 	usersSQL := `CREATE TABLE IF NOT EXISTS users (
 		id serial PRIMARY KEY,
-		username VARCHAR ( 50 ) UNIQUE NOT NULL,
+		login VARCHAR ( 50 ) UNIQUE NOT NULL,
 		password TEXT NOT NULL);`
 
 	tokensSQL := `CREATE TABLE IF NOT EXISTS tokens (
