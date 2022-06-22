@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/zklevsha/go-musthave-diploma/internal/structs"
 )
@@ -54,6 +55,29 @@ func (d *DBConnector) Register(login string, password string) error {
 	return err
 }
 
+func (d *DBConnector) GetUserID(creds structs.Credentials) (int, error) {
+	conn, err := d.Pool.Acquire(d.Ctx)
+	if err != nil {
+		return -1, fmt.Errorf("failed to acquire connection: %s", err.Error())
+	}
+	defer conn.Release()
+	var id int
+	var password string
+	sql := `SELECT id, password FROM users WHERE login=$1;`
+	row := conn.QueryRow(d.Ctx, sql, creds.Login)
+
+	switch err := row.Scan(&id, &password); err {
+	case pgx.ErrNoRows:
+		return -1, structs.ErrUserAuth
+	case nil:
+		return id, nil
+	default:
+		e := fmt.Errorf("unknown error while authenticating user: %s", err.Error())
+		return -1, e
+	}
+
+}
+
 func (d *DBConnector) Init() error {
 	p, err := pgxpool.Connect(d.Ctx, d.DSN)
 	if err != nil {
@@ -87,21 +111,10 @@ func (d *DBConnector) CreateTables() error {
 		login VARCHAR ( 50 ) UNIQUE NOT NULL,
 		password TEXT NOT NULL);`
 
-	tokensSQL := `CREATE TABLE IF NOT EXISTS tokens (
-		id serial PRIMARY KEY,
-		userid int REFERENCES users (Id),
-		token TEXT NOT NULL,
-		created_ts bigint);
-	`
-
 	_, err = conn.Exec(d.Ctx, usersSQL)
 	if err != nil {
 		return fmt.Errorf("cant create users table: %s", err.Error())
 	}
 
-	_, err = conn.Exec(d.Ctx, tokensSQL)
-	if err != nil {
-		return fmt.Errorf("cant create tokens table: %s", err.Error())
-	}
 	return nil
 }
