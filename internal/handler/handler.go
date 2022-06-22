@@ -43,6 +43,19 @@ func getErrStatusCode(err error) int {
 	}
 }
 
+func TokenGetUserId(r *http.Request, key string) (int, error) {
+	auth := r.Header.Get("Authorization")
+	if auth == "" {
+		return -1, errors.New("authorization header is not set")
+	}
+	splitToken := strings.Split(auth, "Bearer")
+	if len(splitToken) != 2 {
+		return -1, errors.New("bad format Authorization header: expect Bearer <jwt-token>")
+	}
+	token := strings.TrimSpace(splitToken[1])
+	return jwt.GetUserID(token, key)
+}
+
 type Handler struct {
 	Storage interfaces.Storage
 	key     string
@@ -65,12 +78,16 @@ func (h *Handler) sendResponse(w http.ResponseWriter, code int,
 }
 
 func (h *Handler) rootHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	compress :=
-		strings.Contains(strings.Join(r.Header["Accept-Encoding"], ","), "gzip")
-	asText := !strings.Contains(strings.Join(r.Header["Accept"], ","), "application/json")
+	_, compress, asText := getFlags(r)
 
-	resp := structs.Response{Message: "<html><body><h1>Server is wokring</h1></body></html>"}
+	_, err := TokenGetUserId(r, h.key)
+	if err != nil {
+		h.sendResponse(w, http.StatusUnauthorized, structs.Response{Error: err.Error()},
+			compress, asText)
+		return
+	}
+
+	resp := structs.Response{Message: "<html><body><h1>Server is working</h1></body></html>"}
 	h.sendResponse(w, http.StatusOK, resp, compress, asText)
 }
 
