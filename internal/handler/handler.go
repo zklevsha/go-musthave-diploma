@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -16,6 +17,7 @@ import (
 	"github.com/zklevsha/go-musthave-diploma/internal/hash"
 	"github.com/zklevsha/go-musthave-diploma/internal/interfaces"
 	"github.com/zklevsha/go-musthave-diploma/internal/jwt"
+	"github.com/zklevsha/go-musthave-diploma/internal/luhn"
 	"github.com/zklevsha/go-musthave-diploma/internal/serializer"
 	"github.com/zklevsha/go-musthave-diploma/internal/structs"
 )
@@ -38,6 +40,8 @@ func getErrStatusCode(err error) int {
 		return http.StatusConflict
 	case errors.Is(err, structs.ErrUserAuth):
 		return http.StatusUnauthorized
+	case errors.Is(err, structs.ErrOrderIdAlreadyUsed):
+		return http.StatusConflict
 	default:
 		return http.StatusInternalServerError
 	}
@@ -82,12 +86,13 @@ func (h *Handler) rootHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, err := TokenGetUserId(r, h.key)
 	if err != nil {
-		h.sendResponse(w, http.StatusUnauthorized, structs.Response{Error: err.Error()},
+		e := fmt.Sprintf("Authentication failure: %s", err.Error())
+		h.sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
 			compress, asText)
 		return
 	}
 
-	resp := structs.Response{Message: "<html><body><h1>Server is working</h1></body></html>"}
+	resp := structs.Response{Message: "Server is working"}
 	h.sendResponse(w, http.StatusOK, resp, compress, asText)
 }
 
@@ -185,6 +190,64 @@ func (h *Handler) loginHandler(w http.ResponseWriter, r *http.Request) {
 		compressResponse, responseAsText)
 }
 
+func (h *Handler) createOrderHandler(w http.ResponseWriter, r *http.Request) {
+	requestCompressed, compressResponse, responseAsText := getFlags(r)
+
+	userid, err := TokenGetUserId(r, h.key)
+	if err != nil {
+		e := fmt.Sprintf("Authentication failure: %s", err.Error())
+		h.sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
+			compressResponse, responseAsText)
+		return
+	}
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		e := fmt.Sprintf("failed to read body: %s", err.Error())
+		h.sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+			compressResponse, responseAsText)
+	}
+
+	if requestCompressed {
+		b, err = archive.Decompress(b)
+		if err != nil {
+			e := fmt.Sprintf("Failed to decompress request body: %s", err.Error())
+			h.sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+				compressResponse, responseAsText)
+			return
+		}
+	}
+
+	orderid, err := strconv.Atoi(string(b))
+	if err != nil {
+		h.sendResponse(w, http.StatusBadRequest, structs.Response{Error: "invalid request format"},
+			compressResponse, responseAsText)
+		return
+	}
+
+	if !luhn.Valid(orderid) {
+		h.sendResponse(w, http.StatusUnprocessableEntity, structs.Response{Error: "invalid orderid value"},
+			compressResponse, responseAsText)
+		return
+	}
+
+	dbChanged, err := h.Storage.CreateOrder(userid, orderid)
+	if err != nil {
+		h.sendResponse(w, getErrStatusCode(err), structs.Response{Error: err.Error()},
+			compressResponse, responseAsText)
+		return
+	}
+	if dbChanged {
+		h.sendResponse(w, http.StatusAccepted, structs.Response{Message: "order created"},
+			compressResponse, responseAsText)
+
+	} else {
+		h.sendResponse(w, http.StatusOK, structs.Response{Message: "order already exists"},
+			compressResponse, responseAsText)
+	}
+
+}
+
 func GetHandler(c config.ServerConfig, ctx context.Context, store interfaces.Storage) http.Handler {
 	r := mux.NewRouter()
 	h := Handler{Storage: store, key: c.Key}
@@ -199,6 +262,11 @@ func GetHandler(c config.ServerConfig, ctx context.Context, store interfaces.Sto
 	r.HandleFunc("/api/user/login", h.loginHandler).
 		Methods("POST").
 		Headers("Content-Type", "application/json")
+
+	// create order
+	r.HandleFunc("/api/orders", h.createOrderHandler).
+		Methods("POST").
+		Headers("Content-Type", "text/plain")
 
 	return r
 

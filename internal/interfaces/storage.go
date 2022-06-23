@@ -7,4 +7,5 @@ type Storage interface {
 	Init() error
 	Register(login string, password string) error
 	GetUserID(creds structs.Credentials) (int, error)
+	CreateOrder(userid int, orderid int) (bool, error)
 }
