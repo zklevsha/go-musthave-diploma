@@ -264,7 +264,7 @@ func GetHandler(c config.ServerConfig, ctx context.Context, store interfaces.Sto
 		Headers("Content-Type", "application/json")
 
 	// create order
-	r.HandleFunc("/api/orders", h.createOrderHandler).
+	r.HandleFunc("/api/user/orders", h.createOrderHandler).
 		Methods("POST").
 		Headers("Content-Type", "text/plain")
 
