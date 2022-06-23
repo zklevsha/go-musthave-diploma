@@ -60,12 +60,7 @@ func TokenGetUserId(r *http.Request, key string) (int, error) {
 	return jwt.GetUserID(token, key)
 }
 
-type Handler struct {
-	Storage interfaces.Storage
-	key     string
-}
-
-func (h *Handler) sendResponse(w http.ResponseWriter, code int,
+func sendResponse(w http.ResponseWriter, code int,
 	resp structs.Response, compress bool, asText bool) {
 	responseBody, err := serializer.EncodeServerResponse(resp, compress, asText)
 	if err != nil {
@@ -81,19 +76,39 @@ func (h *Handler) sendResponse(w http.ResponseWriter, code int,
 	w.Write(responseBody)
 }
 
+func sendOrdersResponse(w http.ResponseWriter, code int,
+	orders []structs.Order, compress bool) {
+	responseBody, err := serializer.EncodeOrdersResponse(orders, compress)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("failed to encode server response: %s", err.Error())))
+		return
+	}
+	if compress {
+		w.Header().Set("Content-Encoding", "gzip")
+	}
+	w.WriteHeader(code)
+	w.Write(responseBody)
+}
+
+type Handler struct {
+	Storage interfaces.Storage
+	key     string
+}
+
 func (h *Handler) rootHandler(w http.ResponseWriter, r *http.Request) {
 	_, compress, asText := getFlags(r)
 
 	_, err := TokenGetUserId(r, h.key)
 	if err != nil {
 		e := fmt.Sprintf("Authentication failure: %s", err.Error())
-		h.sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
+		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
 			compress, asText)
 		return
 	}
 
 	resp := structs.Response{Message: "Server is working"}
-	h.sendResponse(w, http.StatusOK, resp, compress, asText)
+	sendResponse(w, http.StatusOK, resp, compress, asText)
 }
 
 func (h *Handler) registerHandler(w http.ResponseWriter, r *http.Request) {
@@ -102,7 +117,7 @@ func (h *Handler) registerHandler(w http.ResponseWriter, r *http.Request) {
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		e := fmt.Sprintf("failed to read body: %s", err.Error())
-		h.sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
 			compressResponse, responseAsText)
 	}
 
@@ -110,7 +125,7 @@ func (h *Handler) registerHandler(w http.ResponseWriter, r *http.Request) {
 		b, err = archive.Decompress(b)
 		if err != nil {
 			e := fmt.Sprintf("Failed to decompress request body: %s", err.Error())
-			h.sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+			sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
 				compressResponse, responseAsText)
 			return
 		}
@@ -120,7 +135,7 @@ func (h *Handler) registerHandler(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(bytes.NewReader(b)).Decode(&creds)
 	if err != nil {
 		e := fmt.Sprintf("failed to decode request body: %s", err.Error())
-		h.sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
 			compressResponse, responseAsText)
 		return
 	}
@@ -136,8 +151,7 @@ func (h *Handler) registerHandler(w http.ResponseWriter, r *http.Request) {
 		respCode = http.StatusOK
 		resp.Message = "user was created"
 	}
-
-	h.sendResponse(w, respCode, resp, compressResponse, responseAsText)
+	sendResponse(w, respCode, resp, compressResponse, responseAsText)
 
 }
 
@@ -147,7 +161,7 @@ func (h *Handler) loginHandler(w http.ResponseWriter, r *http.Request) {
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		e := fmt.Sprintf("failed to read body: %s", err.Error())
-		h.sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
 			compressResponse, responseAsText)
 	}
 
@@ -155,7 +169,7 @@ func (h *Handler) loginHandler(w http.ResponseWriter, r *http.Request) {
 		b, err = archive.Decompress(b)
 		if err != nil {
 			e := fmt.Sprintf("Failed to decompress request body: %s", err.Error())
-			h.sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+			sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
 				compressResponse, responseAsText)
 			return
 		}
@@ -165,7 +179,7 @@ func (h *Handler) loginHandler(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(bytes.NewReader(b)).Decode(&creds)
 	if err != nil {
 		e := fmt.Sprintf("failed to decode request body: %s", err.Error())
-		h.sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
 			compressResponse, responseAsText)
 		return
 	}
@@ -173,7 +187,7 @@ func (h *Handler) loginHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := h.Storage.GetUserID(creds)
 	if err != nil {
 		e := fmt.Sprintf("failed to authenticate user: %s", err.Error())
-		h.sendResponse(w, getErrStatusCode(err), structs.Response{Error: e},
+		sendResponse(w, getErrStatusCode(err), structs.Response{Error: e},
 			compressResponse, responseAsText)
 		return
 	}
@@ -181,12 +195,12 @@ func (h *Handler) loginHandler(w http.ResponseWriter, r *http.Request) {
 	token, err := jwt.Generate(id, h.key)
 	if err != nil {
 		e := fmt.Sprintf("failed to generate jwt token: %s", err.Error())
-		h.sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
 			compressResponse, responseAsText)
 		return
 	}
 
-	h.sendResponse(w, http.StatusOK, structs.Response{Token: token},
+	sendResponse(w, http.StatusOK, structs.Response{Token: token},
 		compressResponse, responseAsText)
 }
 
@@ -196,7 +210,7 @@ func (h *Handler) createOrderHandler(w http.ResponseWriter, r *http.Request) {
 	userid, err := TokenGetUserId(r, h.key)
 	if err != nil {
 		e := fmt.Sprintf("Authentication failure: %s", err.Error())
-		h.sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
+		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
 			compressResponse, responseAsText)
 		return
 	}
@@ -204,7 +218,7 @@ func (h *Handler) createOrderHandler(w http.ResponseWriter, r *http.Request) {
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		e := fmt.Sprintf("failed to read body: %s", err.Error())
-		h.sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
 			compressResponse, responseAsText)
 	}
 
@@ -212,7 +226,7 @@ func (h *Handler) createOrderHandler(w http.ResponseWriter, r *http.Request) {
 		b, err = archive.Decompress(b)
 		if err != nil {
 			e := fmt.Sprintf("Failed to decompress request body: %s", err.Error())
-			h.sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+			sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
 				compressResponse, responseAsText)
 			return
 		}
@@ -220,31 +234,55 @@ func (h *Handler) createOrderHandler(w http.ResponseWriter, r *http.Request) {
 
 	orderid, err := strconv.Atoi(string(b))
 	if err != nil {
-		h.sendResponse(w, http.StatusBadRequest, structs.Response{Error: "invalid request format"},
+		sendResponse(w, http.StatusBadRequest, structs.Response{Error: "invalid request format"},
 			compressResponse, responseAsText)
 		return
 	}
 
 	if !luhn.Valid(orderid) {
-		h.sendResponse(w, http.StatusUnprocessableEntity, structs.Response{Error: "invalid orderid value"},
+		sendResponse(w, http.StatusUnprocessableEntity, structs.Response{Error: "invalid orderid value"},
 			compressResponse, responseAsText)
 		return
 	}
 
 	dbChanged, err := h.Storage.CreateOrder(userid, orderid)
 	if err != nil {
-		h.sendResponse(w, getErrStatusCode(err), structs.Response{Error: err.Error()},
+		sendResponse(w, getErrStatusCode(err), structs.Response{Error: err.Error()},
 			compressResponse, responseAsText)
 		return
 	}
 	if dbChanged {
-		h.sendResponse(w, http.StatusAccepted, structs.Response{Message: "order created"},
+		sendResponse(w, http.StatusAccepted, structs.Response{Message: "order created"},
 			compressResponse, responseAsText)
 
 	} else {
-		h.sendResponse(w, http.StatusOK, structs.Response{Message: "order already exists"},
+		sendResponse(w, http.StatusOK, structs.Response{Message: "order already exists"},
 			compressResponse, responseAsText)
 	}
+
+}
+
+func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
+	_, compressResponse, responseAsText := getFlags(r)
+	userid, err := TokenGetUserId(r, h.key)
+	if err != nil {
+		e := fmt.Sprintf("authentication failure: %s", err.Error())
+		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
+			compressResponse, responseAsText)
+		return
+	}
+	orders, err := h.Storage.GetOrders(userid)
+	if err != nil {
+		e := fmt.Sprintf("cant get orders: %s", err.Error())
+		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+			compressResponse, responseAsText)
+		return
+	}
+	if len(orders) == 0 {
+		sendResponse(w, http.StatusNoContent, structs.Response{Message: "no orders were found"},
+			compressResponse, responseAsText)
+	}
+	sendOrdersResponse(w, http.StatusOK, orders, compressResponse)
 
 }
 
@@ -267,6 +305,10 @@ func GetHandler(c config.ServerConfig, ctx context.Context, store interfaces.Sto
 	r.HandleFunc("/api/user/orders", h.createOrderHandler).
 		Methods("POST").
 		Headers("Content-Type", "text/plain")
+
+	// get orders
+	r.HandleFunc("/api/user/orders", h.getOrdersHandler).
+		Methods("GET")
 
 	return r
 

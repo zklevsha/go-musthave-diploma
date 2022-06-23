@@ -144,6 +144,54 @@ func (d *DBConnector) CreateOrder(userid int, orderid int) (bool, error) {
 	return true, nil
 }
 
+func (d *DBConnector) GetOrders(userid int) ([]structs.Order, error) {
+	err := d.checkInit()
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := d.Pool.Acquire(d.Ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to acquire connection: %s", err.Error())
+	}
+	defer conn.Release()
+
+	sql := `SELECT id, status, accural, created_ts 
+			FROM orders
+			WHERE userid=$1`
+	rows, err := conn.Query(d.Ctx, sql, userid)
+	if err != nil {
+		e := fmt.Errorf("failed to query orders table: %s", err.Error())
+		return nil, e
+	}
+	defer rows.Close()
+
+	var orders []structs.Order
+	for rows.Next() {
+		var orderNumber int
+		var status string
+		var accural *int
+		var created_ts int64
+
+		if err := rows.Scan(&orderNumber, &status, &accural, &created_ts); err != nil {
+			e := fmt.Errorf("failed to scan row from orders table: %s", err.Error())
+			return nil, e
+		}
+		order := structs.Order{Number: fmt.Sprint(orderNumber),
+			Status:     status,
+			Accural:    accural,
+			UploadedAt: time.Unix(created_ts, 0).Format("2006-01-02T15:04:05-07:00")}
+		orders = append(orders, order)
+	}
+
+	if err := rows.Err(); err != nil {
+		e := fmt.Errorf("error(s) occured during orders table scanning: %s", err.Error())
+		return nil, e
+	}
+
+	return orders, nil
+}
+
 func (d *DBConnector) CreateTables() error {
 	conn, err := d.Pool.Acquire(d.Ctx)
 	defer conn.Release()

@@ -8,4 +8,5 @@ type Storage interface {
 	Register(login string, password string) error
 	GetUserID(creds structs.Credentials) (int, error)
 	CreateOrder(userid int, orderid int) (bool, error)
+	GetOrders(userid int) ([]structs.Order, error)
 }
