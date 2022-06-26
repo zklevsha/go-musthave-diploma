@@ -26,13 +26,13 @@ func main() {
 	dsnLog := re.ReplaceAllString(config.DSN, ":******@")
 
 	log.Printf("INFO main server config: RunAddr: %s, AccuralAddr: %s, DSN: %s",
-		config.RunAddr, config.AccurallAddr, dsnLog)
+		config.RunAddr, config.AccuralAddr, dsnLog)
 
 	// initiazing storage
 	s := &db.DBConnector{DSN: config.DSN, Ctx: ctx}
 	err := s.Init()
 	if err != nil {
-		log.Panicf("failed to init connection to database: %s", err.Error())
+		log.Panicf("CRITICAL failed to init connection to database: %s", err.Error())
 	}
 	defer s.Close()
 
@@ -50,17 +50,17 @@ func main() {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Failed to start web server: %s\n", err)
+			log.Fatalf("CRITICAL Failed to start web server: %s\n", err)
 		}
 	}()
-	log.Print("Server Started\n")
+	log.Print("INFO server Started\n")
 
 	// Handling shutdown
 	sig := <-done
 	log.Printf("INFO main got a signal '%v', start shutting down...\n", sig)
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("Server Shutdown Failed:%+v", err)
+		log.Fatalf("ERROR server shutdown Failed:%+v", err)
 	}
 	cancel()
-	log.Print("Server Exited Properly")
+	log.Print("INFO server exited properly")
 }

@@ -49,3 +49,20 @@ func EncodeOrdersResponse(orders []structs.Order, compress bool) ([]byte, error)
 	}
 	return compressed, nil
 }
+
+func EncodeOrderResponse(order structs.Order, compress bool) ([]byte, error) {
+	resp, err := json.Marshal(order)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode server response to json %s", err.Error())
+	}
+
+	if !compress {
+		return resp, nil
+	}
+
+	compressed, err := archive.Compress(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compress server response %s", err.Error())
+	}
+	return compressed, nil
+}

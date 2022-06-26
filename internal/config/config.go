@@ -7,13 +7,17 @@ import (
 )
 
 const runAddrDef = ":8081"
-const accurallAddrDef = "127.0.0.1:8080"
+const accuralAddrDef = "127.0.0.1:8080"
 
 type ServerConfig struct {
-	RunAddr      string
-	AccurallAddr string
-	DSN          string
-	Key          string
+	RunAddr     string
+	AccuralAddr string
+	DSN         string
+	Key         string
+}
+
+type AccuralConfig struct {
+	RunAddr string
 }
 
 func GetConfig() ServerConfig {
@@ -22,8 +26,8 @@ func GetConfig() ServerConfig {
 	var runAddrF, accuralAddrF, dsnF, keyF string
 	flag.StringVar(&runAddrF, "a", runAddrDef,
 		fmt.Sprintf("server socket (default: %s)", runAddrDef))
-	flag.StringVar(&accuralAddrF, "p", accurallAddrDef,
-		fmt.Sprintf("accural system adddress (default: %s)", accurallAddrDef))
+	flag.StringVar(&accuralAddrF, "p", accuralAddrDef,
+		fmt.Sprintf("accural system adddress (default: %s)", accuralAddrDef))
 	flag.StringVar(&dsnF, "d", "",
 		"database connection string (postgres://username:password@localhost:5432/database_name)")
 	flag.StringVar(&keyF, "k", "",
@@ -44,9 +48,9 @@ func GetConfig() ServerConfig {
 
 	// Accural address
 	if accuralAddrEnv != "" {
-		config.AccurallAddr = accuralAddrEnv
+		config.AccuralAddr = accuralAddrEnv
 	} else {
-		config.AccurallAddr = accuralAddrF
+		config.AccuralAddr = accuralAddrF
 	}
 
 	// DSN
@@ -69,5 +73,16 @@ func GetConfig() ServerConfig {
 			"Set it via 'KEY' enviroment variable or '-k' flag")
 	}
 
+	return config
+}
+
+func GetAccuralConfig() AccuralConfig {
+	var config AccuralConfig
+
+	var runAddrF string
+	flag.StringVar(&runAddrF, "a", accuralAddrDef, "server socket")
+	flag.Parse()
+
+	config.RunAddr = runAddrF
 	return config
 }
