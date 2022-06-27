@@ -16,8 +16,8 @@ import (
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	log.Println("INFO main starting accural server")
-	config := config.GetAccuralConfig()
+	log.Println("INFO main starting accrual server")
+	config := config.GetAccrualConfig()
 
 	log.Printf("INFO main server config: RunAddr: %s", config.RunAddr)
 

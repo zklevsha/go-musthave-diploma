@@ -8,14 +8,17 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"sync"
 	"syscall"
 
 	"github.com/zklevsha/go-musthave-diploma/internal/config"
 	"github.com/zklevsha/go-musthave-diploma/internal/db"
 	"github.com/zklevsha/go-musthave-diploma/internal/handler"
+	"github.com/zklevsha/go-musthave-diploma/internal/processor"
 )
 
 func main() {
+	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 
 	log.Println("INFO main starting server")
@@ -25,8 +28,8 @@ func main() {
 	re := regexp.MustCompile(":[a-zA-Z]+@")
 	dsnLog := re.ReplaceAllString(config.DSN, ":******@")
 
-	log.Printf("INFO main server config: RunAddr: %s, AccuralAddr: %s, DSN: %s",
-		config.RunAddr, config.AccuralAddr, dsnLog)
+	log.Printf("INFO main server config: RunAddr: %s, AccrualURL: %s, DSN: %s",
+		config.RunAddr, config.AccrualURL, dsnLog)
 
 	// initiazing storage
 	s := &db.DBConnector{DSN: config.DSN, Ctx: ctx}
@@ -35,6 +38,17 @@ func main() {
 		log.Panicf("CRITICAL failed to init connection to database: %s", err.Error())
 	}
 	defer s.Close()
+
+	//Starting order`s proccessor
+	p := processor.Processor{
+		Delay:   config.AccrualDelay,
+		Ctx:     ctx,
+		Wg:      &wg,
+		Storage: s,
+		Accrual: config.AccrualURL,
+	}
+	wg.Add(1)
+	go p.Start()
 
 	// Starting web server
 	handler := handler.GetHandler(config, ctx, s)
@@ -62,5 +76,6 @@ func main() {
 		log.Fatalf("ERROR server shutdown Failed:%+v", err)
 	}
 	cancel()
+	wg.Wait()
 	log.Print("INFO server exited properly")
 }

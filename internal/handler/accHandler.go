@@ -40,9 +40,9 @@ func (a *accHandler) orderHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if rand.Intn(10)%2 == 0 {
-		accural := order % 359
+		accrual := order % 359
 		sendOrderResponse(w, http.StatusOK,
-			structs.Order{Order: v["order"], Status: "PROCESSED", Accural: &accural},
+			structs.Order{Order: v["order"], Status: "PROCESSED", Accrual: &accrual},
 			compress)
 		return
 	}
@@ -60,7 +60,7 @@ func (a *accHandler) orderHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func AccGetHandler(c config.AccuralConfig, ctx context.Context) http.Handler {
+func AccGetHandler(c config.AccrualConfig, ctx context.Context) http.Handler {
 	r := mux.NewRouter()
 	a := accHandler{}
 	r.HandleFunc("/", a.rootHandler)

@@ -3,31 +3,73 @@ package config
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
+	"time"
 )
 
-const runAddrDef = ":8081"
-const accuralAddrDef = "127.0.0.1:8080"
+func parseInterval(env string, flag string) (time.Duration, error) {
+	if env != "" && flag != "" {
+		i, errEnv := time.ParseDuration(env)
+		if errEnv == nil {
+			return i, nil
+		}
+		log.Printf("WARN main failed to convert env var to time.Duration: %s.", errEnv.Error())
+		i, errFlag := time.ParseDuration(flag)
+		if errFlag == nil {
+			return i, nil
+		}
+		return time.Duration(0),
+			fmt.Errorf("failed to convert both env var and flag to time.Duration: errEnv=%s, errFlag=%s", errEnv, errFlag)
+	}
 
-type ServerConfig struct {
-	RunAddr     string
-	AccuralAddr string
-	DSN         string
-	Key         string
+	if env != "" {
+		i, err := time.ParseDuration(env)
+		if err != nil {
+			return time.Duration(0),
+				fmt.Errorf("failed to parse flag %s: %s", flag, err.Error())
+		}
+		return i, nil
+	}
+
+	if flag != "" {
+		i, err := time.ParseDuration(flag)
+		if err != nil {
+			return time.Duration(0),
+				fmt.Errorf("failed to convert env var to time.Duration: %s", err.Error())
+		}
+		return i, nil
+	}
+
+	return time.Duration(0), fmt.Errorf("both flag and env are empty")
+
 }
 
-type AccuralConfig struct {
+const runAddrDef = ":8081"
+const accrualAddrDef = "127.0.0.1:8080"
+const accrualUrlDef = "http://127.0.0.1:8080"
+const accrualDelayDef = time.Duration(30 * time.Second)
+
+type ServerConfig struct {
+	RunAddr      string
+	AccrualURL   string
+	AccrualDelay time.Duration
+	DSN          string
+	Key          string
+}
+
+type AccrualConfig struct {
 	RunAddr string
 }
 
 func GetConfig() ServerConfig {
 	var config ServerConfig
 
-	var runAddrF, accuralAddrF, dsnF, keyF string
-	flag.StringVar(&runAddrF, "a", runAddrDef,
-		fmt.Sprintf("server socket (default: %s)", runAddrDef))
-	flag.StringVar(&accuralAddrF, "p", accuralAddrDef,
-		fmt.Sprintf("accural system adddress (default: %s)", accuralAddrDef))
+	var runAddrF, accrualURLF, dsnF, keyF, accuralDelayF string
+	flag.StringVar(&runAddrF, "a", runAddrDef, "server socket")
+	flag.StringVar(&accrualURLF, "p", accrualUrlDef, "accrual system adddress")
+	flag.StringVar(&accuralDelayF, "i", accrualDelayDef.String(),
+		"how often server will get order`s status/accrual from accrual system")
 	flag.StringVar(&dsnF, "d", "",
 		"database connection string (postgres://username:password@localhost:5432/database_name)")
 	flag.StringVar(&keyF, "k", "",
@@ -35,7 +77,8 @@ func GetConfig() ServerConfig {
 	flag.Parse()
 
 	runAddrEnv := os.Getenv("RUN_ADDRESS")
-	accuralAddrEnv := os.Getenv("ACCRUAL_SYSTEM_ADDRESS")
+	accrualURLEnv := os.Getenv("ACCRUAL_SYSTEM_ADDRESS")
+	accrualDelayEnv := os.Getenv("ACCRUAL_SYSTEM_DELAY")
 	dsnEnv := os.Getenv("DATABASE_URI")
 	keyEnv := os.Getenv("KEY")
 
@@ -46,11 +89,21 @@ func GetConfig() ServerConfig {
 		config.RunAddr = runAddrF
 	}
 
-	// Accural address
-	if accuralAddrEnv != "" {
-		config.AccuralAddr = accuralAddrEnv
+	// accrual URL
+	if accrualURLEnv != "" {
+		config.AccrualURL = accrualURLEnv
 	} else {
-		config.AccuralAddr = accuralAddrF
+		config.AccrualURL = accrualURLF
+	}
+
+	// accrual delay
+	accuralDelay, err := parseInterval(accrualDelayEnv, accuralDelayF)
+	if err != nil {
+		log.Printf("WARN can`t parse storeInterval (env:%s, flag: %s): %s. Default value will be used (%s)",
+			accrualDelayEnv, accuralDelayF, err.Error(), accrualDelayDef)
+		config.AccrualDelay = accrualDelayDef
+	} else {
+		config.AccrualDelay = accuralDelay
 	}
 
 	// DSN
@@ -76,11 +129,11 @@ func GetConfig() ServerConfig {
 	return config
 }
 
-func GetAccuralConfig() AccuralConfig {
-	var config AccuralConfig
+func GetAccrualConfig() AccrualConfig {
+	var config AccrualConfig
 
 	var runAddrF string
-	flag.StringVar(&runAddrF, "a", accuralAddrDef, "server socket")
+	flag.StringVar(&runAddrF, "a", accrualAddrDef, "server socket")
 	flag.Parse()
 
 	config.RunAddr = runAddrF

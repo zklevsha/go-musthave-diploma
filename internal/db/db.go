@@ -156,7 +156,7 @@ func (d *DBConnector) GetOrders(userid int) ([]structs.Order, error) {
 	}
 	defer conn.Release()
 
-	sql := `SELECT id, status, accural, created_ts 
+	sql := `SELECT id, status, accrual, created_ts 
 			FROM orders
 			WHERE userid=$1`
 	rows, err := conn.Query(d.Ctx, sql, userid)
@@ -170,16 +170,16 @@ func (d *DBConnector) GetOrders(userid int) ([]structs.Order, error) {
 	for rows.Next() {
 		var orderNumber int
 		var status string
-		var accural *int
+		var accrual *int
 		var created_ts int64
 
-		if err := rows.Scan(&orderNumber, &status, &accural, &created_ts); err != nil {
+		if err := rows.Scan(&orderNumber, &status, &accrual, &created_ts); err != nil {
 			e := fmt.Errorf("failed to scan row from orders table: %s", err.Error())
 			return nil, e
 		}
 		order := structs.Order{Number: fmt.Sprint(orderNumber),
 			Status:     status,
-			Accural:    accural,
+			Accrual:    accrual,
 			UploadedAt: time.Unix(created_ts, 0).Format("2006-01-02T15:04:05-07:00")}
 		orders = append(orders, order)
 	}
@@ -190,6 +190,83 @@ func (d *DBConnector) GetOrders(userid int) ([]structs.Order, error) {
 	}
 
 	return orders, nil
+}
+
+func (d *DBConnector) GetUnprocessedOrders() ([]int, error) {
+	err := d.checkInit()
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := d.Pool.Acquire(d.Ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to acquire connection: %s", err.Error())
+	}
+	defer conn.Release()
+
+	sql := `SELECT id
+			FROM orders
+			WHERE status='NEW' OR status='PROCESSING'`
+	rows, err := conn.Query(d.Ctx, sql)
+	if err != nil {
+		e := fmt.Errorf("failed to query orders table: %s", err.Error())
+		return nil, e
+	}
+	defer rows.Close()
+
+	var orders []int
+	for rows.Next() {
+		var orderNumber int
+		if err := rows.Scan(&orderNumber); err != nil {
+			e := fmt.Errorf("failed to scan row from orders table: %s", err.Error())
+			return nil, e
+		}
+		orders = append(orders, orderNumber)
+	}
+
+	if err := rows.Err(); err != nil {
+		e := fmt.Errorf("error(s) occured during orders table scanning: %s", err.Error())
+		return nil, e
+	}
+	return orders, nil
+}
+
+func (d *DBConnector) SetOrderStatus(id int, status string) (int64, error) {
+	err := d.checkInit()
+	if err != nil {
+		return -1, err
+	}
+	conn, err := d.Pool.Acquire(d.Ctx)
+	if err != nil {
+		return -1, fmt.Errorf("failed to acquire connection: %s", err.Error())
+	}
+	defer conn.Release()
+	sql := `UPDATE orders SET status = $2 WHERE id = $1;`
+	res, err := conn.Exec(d.Ctx, sql, id, status)
+	if err != nil {
+		return -1, fmt.Errorf("failed exec sql: %s", err.Error())
+	}
+	count := res.RowsAffected()
+	return count, nil
+}
+
+func (d *DBConnector) SetOrderAccrual(id int, accrual int) (int64, error) {
+	err := d.checkInit()
+	if err != nil {
+		return -1, err
+	}
+	conn, err := d.Pool.Acquire(d.Ctx)
+	if err != nil {
+		return -1, fmt.Errorf("failed to acquire connection: %s", err.Error())
+	}
+	defer conn.Release()
+	sql := `UPDATE orders SET accrual = $2 WHERE id = $1;`
+	res, err := conn.Exec(d.Ctx, sql, id, accrual)
+	if err != nil {
+		return -1, fmt.Errorf("failed exec sql: %s", err.Error())
+	}
+	count := res.RowsAffected()
+	return count, nil
 }
 
 func (d *DBConnector) CreateTables() error {
@@ -212,7 +289,7 @@ func (d *DBConnector) CreateTables() error {
 	ordersSQL := `CREATE TABLE IF NOT EXISTS orders (
 		id bigint PRIMARY KEY,
 		status VARCHAR (15) DEFAULT 'NEW',
-		accural int,
+		accrual int,
 		created_ts bigint,
 		userid integer REFERENCES users (id));`
 
