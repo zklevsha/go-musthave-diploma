@@ -214,6 +214,24 @@ func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (h *Handler) getBalanceHandler(w http.ResponseWriter, r *http.Request) {
+	_, compressResponse, responseAsText := getFlags(r)
+	userid, err := TokenGetUserId(r, h.key)
+	if err != nil {
+		e := fmt.Sprintf("authentication failure: %s", err.Error())
+		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
+			compressResponse, responseAsText)
+		return
+	}
+
+	balance, err := h.Storage.GetUserBalance(userid)
+	if err != nil {
+		sendResponse(w, http.StatusInternalServerError, structs.Response{Error: err.Error()},
+			compressResponse, responseAsText)
+	}
+	sendResponse(w, http.StatusOK, balance, compressResponse, false)
+}
+
 func GetHandler(c config.ServerConfig, ctx context.Context, store interfaces.Storage) http.Handler {
 	r := mux.NewRouter()
 	h := Handler{Storage: store, key: c.Key}
@@ -238,6 +256,9 @@ func GetHandler(c config.ServerConfig, ctx context.Context, store interfaces.Sto
 	r.HandleFunc("/api/user/orders", h.getOrdersHandler).
 		Methods("GET")
 
+	// get balance
+	r.HandleFunc("/api/user/balance", h.getBalanceHandler).
+		Methods("GET")
 	return r
 
 }

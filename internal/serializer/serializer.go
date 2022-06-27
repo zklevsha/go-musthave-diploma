@@ -5,10 +5,11 @@ import (
 	"fmt"
 
 	"github.com/zklevsha/go-musthave-diploma/internal/archive"
+	"github.com/zklevsha/go-musthave-diploma/internal/interfaces"
 	"github.com/zklevsha/go-musthave-diploma/internal/structs"
 )
 
-func EncodeServerResponse(resp structs.Response, compress bool, asText bool) ([]byte, error) {
+func EncodeServerResponse(resp interfaces.ServerResponse, compress bool, asText bool) ([]byte, error) {
 
 	var msg []byte
 	var err error
@@ -35,23 +36,6 @@ func EncodeServerResponse(resp structs.Response, compress bool, asText bool) ([]
 
 func EncodeOrdersResponse(orders []structs.Order, compress bool) ([]byte, error) {
 	resp, err := json.Marshal(orders)
-	if err != nil {
-		return nil, fmt.Errorf("failed to encode server response to json %s", err.Error())
-	}
-
-	if !compress {
-		return resp, nil
-	}
-
-	compressed, err := archive.Compress(resp)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compress server response %s", err.Error())
-	}
-	return compressed, nil
-}
-
-func EncodeOrderResponse(order structs.Order, compress bool) ([]byte, error) {
-	resp, err := json.Marshal(order)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode server response to json %s", err.Error())
 	}

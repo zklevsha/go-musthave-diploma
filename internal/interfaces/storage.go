@@ -12,4 +12,5 @@ type Storage interface {
 	GetUnprocessedOrders() ([]int, error)
 	SetOrderStatus(id int, status string) (int64, error)
 	SetOrderAccrual(id int, accrual int) (int64, error)
+	GetUserBalance(id int) (structs.Balance, error)
 }

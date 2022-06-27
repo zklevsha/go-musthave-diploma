@@ -41,22 +41,22 @@ func (a *accHandler) orderHandler(w http.ResponseWriter, r *http.Request) {
 
 	if rand.Intn(10)%2 == 0 {
 		accrual := order % 359
-		sendOrderResponse(w, http.StatusOK,
+		sendResponse(w, http.StatusOK,
 			structs.Order{Order: v["order"], Status: "PROCESSED", Accrual: &accrual},
-			compress)
+			compress, false)
 		return
 	}
 
 	switch rand.Intn(2) {
 	case 0:
-		sendOrderResponse(w, http.StatusOK,
-			structs.Order{Order: v["order"], Status: "REGISTERED"}, compress)
+		sendResponse(w, http.StatusOK,
+			structs.Order{Order: v["order"], Status: "REGISTERED"}, compress, false)
 	case 1:
-		sendOrderResponse(w, http.StatusOK,
-			structs.Order{Order: v["order"], Status: "PROCESSING"}, compress)
+		sendResponse(w, http.StatusOK,
+			structs.Order{Order: v["order"], Status: "PROCESSING"}, compress, false)
 	case 2:
-		sendOrderResponse(w, http.StatusOK,
-			structs.Order{Order: v["order"], Status: "INVALID"}, compress)
+		sendResponse(w, http.StatusOK,
+			structs.Order{Order: v["order"], Status: "INVALID"}, compress, false)
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/zklevsha/go-musthave-diploma/internal/interfaces"
 	"github.com/zklevsha/go-musthave-diploma/internal/jwt"
 	"github.com/zklevsha/go-musthave-diploma/internal/serializer"
 	"github.com/zklevsha/go-musthave-diploma/internal/structs"
@@ -51,7 +52,7 @@ func TokenGetUserId(r *http.Request, key string) (int, error) {
 }
 
 func sendResponse(w http.ResponseWriter, code int,
-	resp structs.Response, compress bool, asText bool) {
+	resp interfaces.ServerResponse, compress bool, asText bool) {
 	responseBody, err := serializer.EncodeServerResponse(resp, compress, asText)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -69,21 +70,6 @@ func sendResponse(w http.ResponseWriter, code int,
 func sendOrdersResponse(w http.ResponseWriter, code int,
 	orders []structs.Order, compress bool) {
 	responseBody, err := serializer.EncodeOrdersResponse(orders, compress)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("failed to encode server response: %s", err.Error())))
-		return
-	}
-	if compress {
-		w.Header().Set("Content-Encoding", "gzip")
-	}
-	w.WriteHeader(code)
-	w.Write(responseBody)
-}
-
-func sendOrderResponse(w http.ResponseWriter, code int,
-	order structs.Order, compress bool) {
-	responseBody, err := serializer.EncodeOrderResponse(order, compress)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("failed to encode server response: %s", err.Error())))

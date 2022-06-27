@@ -8,16 +8,16 @@ type Response struct {
 	Token   string `json:"token,omitempty"`
 }
 
-func (s *Response) AsText() string {
+func (r Response) AsText() string {
 	var msg string
-	if s.Message != "" {
-		msg = fmt.Sprintf("meassage:%s;", s.Message)
+	if r.Message != "" {
+		msg = fmt.Sprintf("meassage:%s;", r.Message)
 	}
-	if s.Error != "" {
-		msg += fmt.Sprintf("error:%s;", s.Error)
+	if r.Error != "" {
+		msg += fmt.Sprintf("error:%s;", r.Error)
 	}
-	if s.Token != "" {
-		msg += fmt.Sprintf("token:%s;", s.Token)
+	if r.Token != "" {
+		msg += fmt.Sprintf("token:%s;", r.Token)
 	}
 	return msg
 }

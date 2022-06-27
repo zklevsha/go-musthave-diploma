@@ -269,6 +269,43 @@ func (d *DBConnector) SetOrderAccrual(id int, accrual int) (int64, error) {
 	return count, nil
 }
 
+func (d *DBConnector) GetUserBalance(id int) (structs.Balance, error) {
+	err := d.checkInit()
+	if err != nil {
+		return structs.Balance{}, err
+	}
+	conn, err := d.Pool.Acquire(d.Ctx)
+	if err != nil {
+		return structs.Balance{}, fmt.Errorf("failed to acquire connection: %s", err.Error())
+	}
+	defer conn.Release()
+
+	// geting user accrual
+	sql := `SELECT COALESCE(SUM(accrual),0) AS acc_total
+			FROM orders
+			WHERE userid = $1;`
+	var accTotal int
+	row := conn.QueryRow(d.Ctx, sql, id)
+	err = row.Scan(&accTotal)
+	if err != nil {
+		return structs.Balance{}, fmt.Errorf("failed to query orders table: %s", err.Error())
+	}
+
+	// geting user withdrawals
+	sql = `SELECT COALESCE(SUM(amount),0) AS withdrawals_total
+		   FROM withdrawals
+		   WHERE userid = $1`
+	var wdTotal int
+	row = conn.QueryRow(d.Ctx, sql, id)
+	err = row.Scan(&wdTotal)
+	if err != nil {
+		return structs.Balance{}, fmt.Errorf("failed to query withdrawals table: %s", err.Error())
+	}
+
+	balance := structs.Balance{Current: accTotal - wdTotal, Withdrawn: wdTotal}
+	return balance, nil
+}
+
 func (d *DBConnector) CreateTables() error {
 	conn, err := d.Pool.Acquire(d.Ctx)
 	defer conn.Release()
@@ -294,6 +331,17 @@ func (d *DBConnector) CreateTables() error {
 		userid integer REFERENCES users (id));`
 
 	_, err = conn.Exec(d.Ctx, ordersSQL)
+	if err != nil {
+		return fmt.Errorf("cant create orders table: %s", err.Error())
+	}
+
+	withdrawalsSQL := `CREATE TABLE IF NOT EXISTS withdrawals (
+		id serial PRIMARY KEY,
+		amount int NOT NULL,
+		processed_at bigint,
+		userid integer REFERENCES users (id));`
+
+	_, err = conn.Exec(d.Ctx, withdrawalsSQL)
 	if err != nil {
 		return fmt.Errorf("cant create orders table: %s", err.Error())
 	}
