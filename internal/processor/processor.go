@@ -39,7 +39,7 @@ func (p Processor) Start() {
 
 func (p Processor) processOrders() {
 	log.Println("INFO processor starting process orders")
-	log.Println("INFO getting list of unprocessed orders")
+	log.Println("INFO processor getting list of unprocessed orders")
 	orders, err := p.Storage.GetUnprocessedOrders()
 	if err != nil {
 		log.Printf("ERROR processor failed to get list of orders: %s",

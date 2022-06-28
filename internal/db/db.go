@@ -192,6 +192,27 @@ func (d *DBConnector) GetOrders(userid int) ([]structs.Order, error) {
 	return orders, nil
 }
 
+func (d *DBConnector) UserHasOrder(userid int, orderid int) (bool, error) {
+	conn, err := d.Pool.Acquire(d.Ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to acquire connection: %s", err.Error())
+	}
+	defer conn.Release()
+
+	sql := `SELECT id FROM orders WHERE userid = $1 AND id = $2;`
+	var res int
+	row := conn.QueryRow(d.Ctx, sql, userid, orderid)
+	switch err := row.Scan(&res); err {
+	case pgx.ErrNoRows:
+		return false, nil
+	case nil:
+		return true, nil
+	default:
+		e := fmt.Errorf("unknown error while authenticating user: %s", err.Error())
+		return false, e
+	}
+}
+
 func (d *DBConnector) GetUnprocessedOrders() ([]int, error) {
 	err := d.checkInit()
 	if err != nil {
@@ -306,7 +327,7 @@ func (d *DBConnector) GetUserBalance(id int) (structs.Balance, error) {
 	return balance, nil
 }
 
-func (d *DBConnector) Withdraw(userid int, amount int) error {
+func (d *DBConnector) Withdraw(userid int, winthdraw structs.Withdraw) error {
 	err := d.checkInit()
 	if err != nil {
 		return err
@@ -318,9 +339,9 @@ func (d *DBConnector) Withdraw(userid int, amount int) error {
 	}
 	defer conn.Release()
 
-	sql := `INSERT INTO withdrawals (userid, amount, processed_at)
-		   VALUES($1, $2, $3);`
-	_, err = conn.Exec(d.Ctx, sql, userid, amount, time.Now().Unix())
+	sql := `INSERT INTO withdrawals (userid, orderid, amount, processed_at)
+		   VALUES($1, $2, $3, $4);`
+	_, err = conn.Exec(d.Ctx, sql, userid, winthdraw.Order, winthdraw.Sum, time.Now().Unix())
 
 	return err
 }
@@ -358,7 +379,8 @@ func (d *DBConnector) CreateTables() error {
 		id serial PRIMARY KEY,
 		amount int NOT NULL,
 		processed_at bigint,
-		userid integer REFERENCES users (id));`
+		userid integer REFERENCES users (id),
+		orderid integer REFERENCES orders (id));`
 
 	_, err = conn.Exec(d.Ctx, withdrawalsSQL)
 	if err != nil {
