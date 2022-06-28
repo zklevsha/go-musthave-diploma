@@ -232,6 +232,85 @@ func (h *Handler) getBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	sendResponse(w, http.StatusOK, balance, compressResponse, false)
 }
 
+func (h *Handler) withdrawHandler(w http.ResponseWriter, r *http.Request) {
+	requestCompressed, compressResponse, responseAsText := getFlags(r)
+
+	userid, err := TokenGetUserId(r, h.key)
+	if err != nil {
+		e := fmt.Sprintf("authentication failure: %s", err.Error())
+		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
+			compressResponse, responseAsText)
+		return
+	}
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		e := fmt.Sprintf("failed to read body: %s", err.Error())
+		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+			compressResponse, responseAsText)
+	}
+
+	if requestCompressed {
+		b, err = archive.Decompress(b)
+		if err != nil {
+			e := fmt.Sprintf("Failed to decompress request body: %s", err.Error())
+			sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+				compressResponse, responseAsText)
+			return
+		}
+	}
+
+	var withdraw structs.Withdraw
+	err = json.NewDecoder(bytes.NewReader(b)).Decode(&withdraw)
+	if err != nil {
+		e := fmt.Sprintf("failed to decode request body: %s", err.Error())
+		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+			compressResponse, responseAsText)
+		return
+	}
+
+	orderid, err := strconv.Atoi(string(withdraw.Order))
+	if err != nil {
+		sendResponse(w, http.StatusBadRequest, structs.Response{Error: "invalid order value"},
+			compressResponse, responseAsText)
+	}
+
+	if !luhn.Valid(orderid) {
+		sendResponse(w, http.StatusUnprocessableEntity, structs.Response{Error: "invalid order value"},
+			compressResponse, responseAsText)
+		return
+	}
+
+	balance, err := h.Storage.GetUserBalance(userid)
+	if err != nil {
+		e := fmt.Sprintf("failed to get users`s balance: %s", err.Error())
+		sendResponse(w, http.StatusInternalServerError,
+			structs.Response{Error: e},
+			compressResponse, responseAsText)
+		return
+	}
+
+	if balance.Current < withdraw.Sum {
+		e := fmt.Sprintf("winthdraw sum exceeds current balance (%d)", balance.Current)
+		sendResponse(w, http.StatusPaymentRequired,
+			structs.Response{Error: e},
+			compressResponse, responseAsText)
+		return
+	}
+
+	err = h.Storage.Withdraw(userid, withdraw.Sum)
+	if err != nil {
+		e := fmt.Sprintf("failed to withdraw: %s", err.Error())
+		sendResponse(w, http.StatusInternalServerError, structs.Response{Error: e},
+			compressResponse, responseAsText)
+		return
+	}
+
+	sendResponse(w, http.StatusOK,
+		structs.Response{Message: "withdraw reqest was proccessed"},
+		compressResponse, responseAsText)
+}
+
 func GetHandler(c config.ServerConfig, ctx context.Context, store interfaces.Storage) http.Handler {
 	r := mux.NewRouter()
 	h := Handler{Storage: store, key: c.Key}
@@ -259,6 +338,12 @@ func GetHandler(c config.ServerConfig, ctx context.Context, store interfaces.Sto
 	// get balance
 	r.HandleFunc("/api/user/balance", h.getBalanceHandler).
 		Methods("GET")
+
+	// withdraw
+	r.HandleFunc("/api/user/balance/withdraw", h.withdrawHandler).
+		Methods("POST").
+		Headers("Content-Type", "application/json")
+
 	return r
 
 }

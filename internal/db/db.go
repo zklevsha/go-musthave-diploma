@@ -306,6 +306,25 @@ func (d *DBConnector) GetUserBalance(id int) (structs.Balance, error) {
 	return balance, nil
 }
 
+func (d *DBConnector) Withdraw(userid int, amount int) error {
+	err := d.checkInit()
+	if err != nil {
+		return err
+	}
+
+	conn, err := d.Pool.Acquire(d.Ctx)
+	if err != nil {
+		return fmt.Errorf("failed to acquire connection: %s", err.Error())
+	}
+	defer conn.Release()
+
+	sql := `INSERT INTO withdrawals (userid, amount, processed_at)
+		   VALUES($1, $2, $3);`
+	_, err = conn.Exec(d.Ctx, sql, userid, amount, time.Now().Unix())
+
+	return err
+}
+
 func (d *DBConnector) CreateTables() error {
 	conn, err := d.Pool.Acquire(d.Ctx)
 	defer conn.Release()
