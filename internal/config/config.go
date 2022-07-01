@@ -47,7 +47,7 @@ func parseInterval(env string, flag string) (time.Duration, error) {
 
 const runAddrDef = ":8081"
 const accrualAddrDef = "127.0.0.1:8080"
-const accrualUrlDef = "http://127.0.0.1:8080"
+const accrualURLDef = "http://127.0.0.1:8080"
 const accrualDelayDef = time.Duration(30 * time.Second)
 
 type ServerConfig struct {
@@ -67,7 +67,7 @@ func GetConfig() ServerConfig {
 
 	var runAddrF, accrualURLF, dsnF, keyF, accuralDelayF string
 	flag.StringVar(&runAddrF, "a", runAddrDef, "server socket")
-	flag.StringVar(&accrualURLF, "p", accrualUrlDef, "accrual system adddress")
+	flag.StringVar(&accrualURLF, "p", accrualURLDef, "accrual system adddress")
 	flag.StringVar(&accuralDelayF, "i", accrualDelayDef.String(),
 		"how often server will get order`s status/accrual from accrual system")
 	flag.StringVar(&dsnF, "d", "",

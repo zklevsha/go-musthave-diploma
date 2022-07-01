@@ -103,12 +103,13 @@ func (p Processor) processOrder(id int) error {
 	return nil
 }
 
-func (p Processor) GetOrderAccrual(orderId int) (structs.Order, error) {
-	url := fmt.Sprintf("%s/api/orders/%d", p.Accrual, orderId)
+func (p Processor) GetOrderAccrual(orderID int) (structs.Order, error) {
+	url := fmt.Sprintf("%s/api/orders/%d", p.Accrual, orderID)
 	resp, err := http.Get(url)
 	if err != nil {
 		return structs.Order{}, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusTooManyRequests {
 		return structs.Order{}, structs.ErrToManyRequests
 	}

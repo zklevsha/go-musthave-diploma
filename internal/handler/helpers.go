@@ -31,7 +31,7 @@ func getErrStatusCode(err error) int {
 		return http.StatusConflict
 	case errors.Is(err, structs.ErrUserAuth):
 		return http.StatusUnauthorized
-	case errors.Is(err, structs.ErrOrderIdAlreadyUsed):
+	case errors.Is(err, structs.ErrOrderIDAlreadyUsed):
 		return http.StatusConflict
 	default:
 		return http.StatusInternalServerError
@@ -67,7 +67,7 @@ func sendResponse(w http.ResponseWriter, code int,
 	w.Write(responseBody)
 }
 
-func sendResponseJson(w http.ResponseWriter, code int,
+func sendResponseJSON(w http.ResponseWriter, code int,
 	str interface{}, compress bool) {
 	responseBody, err := serializer.EncodeResponse(str, compress)
 	if err != nil {

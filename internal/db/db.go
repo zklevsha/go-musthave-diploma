@@ -126,7 +126,7 @@ func (d *DBConnector) CreateOrder(userid int, orderid int) (bool, error) {
 			return false, nil
 		} else {
 			// orderid was used by different user
-			return false, structs.ErrOrderIdAlreadyUsed
+			return false, structs.ErrOrderIDAlreadyUsed
 		}
 	default:
 		e := fmt.Errorf("unknown error while creating order: %s", err.Error())
@@ -171,16 +171,16 @@ func (d *DBConnector) GetOrders(userid int) ([]structs.Order, error) {
 		var orderNumber int
 		var status string
 		var accrual *int
-		var created_ts int64
+		var createdTS int64
 
-		if err := rows.Scan(&orderNumber, &status, &accrual, &created_ts); err != nil {
+		if err := rows.Scan(&orderNumber, &status, &accrual, &createdTS); err != nil {
 			e := fmt.Errorf("failed to scan row from orders table: %s", err.Error())
 			return nil, e
 		}
 		order := structs.Order{Number: fmt.Sprint(orderNumber),
 			Status:     status,
 			Accrual:    accrual,
-			UploadedAt: time.Unix(created_ts, 0).Format("2006-01-02T15:04:05-07:00")}
+			UploadedAt: time.Unix(createdTS, 0).Format("2006-01-02T15:04:05-07:00")}
 		orders = append(orders, order)
 	}
 
@@ -351,16 +351,16 @@ func (d *DBConnector) GetWithdrawls(userid int) ([]structs.Withdraw, error) {
 	for rows.Next() {
 		var orderid int
 		var amount int
-		var processed_at int64
+		var processedAt int64
 
-		if err := rows.Scan(&amount, &orderid, &processed_at); err != nil {
+		if err := rows.Scan(&amount, &orderid, &processedAt); err != nil {
 			e := fmt.Errorf("failed to scan row from withdrawals table: %s", err.Error())
 			return nil, e
 		}
 		withdraw := structs.Withdraw{
 			Order:       fmt.Sprint(orderid),
 			Sum:         amount,
-			ProcessedAt: time.Unix(processed_at, 0).Format("2006-01-02T15:04:05-07:00")}
+			ProcessedAt: time.Unix(processedAt, 0).Format("2006-01-02T15:04:05-07:00")}
 		withdrawals = append(withdrawals, withdraw)
 	}
 
