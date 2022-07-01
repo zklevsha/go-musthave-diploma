@@ -49,6 +49,7 @@ const runAddrDef = "127.0.0.1:8080"
 const accrualAddrDef = "127.0.0.1:8081"
 const accrualURLDef = "http://127.0.0.1:8081"
 const accrualDelayDef = time.Duration(30 * time.Second)
+const secretDefault = "secret"
 
 type ServerConfig struct {
 	RunAddr      string
@@ -72,7 +73,7 @@ func GetConfig() ServerConfig {
 		"how often server will get order`s status/accrual from accrual system")
 	flag.StringVar(&dsnF, "d", "",
 		"database connection string (postgres://username:password@localhost:5432/database_name)")
-	flag.StringVar(&keyF, "k", "",
+	flag.StringVar(&keyF, "k", "secret",
 		"server key (used for salt user`s passwords and jwt auth)")
 	flag.Parse()
 
@@ -119,11 +120,8 @@ func GetConfig() ServerConfig {
 	// Key
 	if keyEnv != "" {
 		config.Key = keyEnv
-	} else if keyF != "" {
-		config.Key = keyF
 	} else {
-		panic("server key is not set. " +
-			"Set it via 'KEY' enviroment variable or '-k' flag")
+		config.Key = keyF
 	}
 
 	return config
