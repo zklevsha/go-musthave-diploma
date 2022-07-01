@@ -45,9 +45,9 @@ func parseInterval(env string, flag string) (time.Duration, error) {
 
 }
 
-const runAddrDef = ":8081"
-const accrualAddrDef = "127.0.0.1:8080"
-const accrualURLDef = "http://127.0.0.1:8080"
+const runAddrDef = "127.0.0.1:8080"
+const accrualAddrDef = "127.0.0.1:8081"
+const accrualURLDef = "http://127.0.0.1:8081"
 const accrualDelayDef = time.Duration(30 * time.Second)
 
 type ServerConfig struct {
