@@ -325,6 +325,54 @@ func (d *DBConnector) Withdraw(userid int, winthdraw structs.Withdraw) error {
 	return err
 }
 
+func (d *DBConnector) GetWithdrawls(userid int) ([]structs.Withdraw, error) {
+	err := d.checkInit()
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := d.Pool.Acquire(d.Ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to acquire connection: %s", err.Error())
+	}
+	defer conn.Release()
+
+	sql := `SELECT amount, orderid, processed_at
+			FROM withdrawals
+			WHERE userid=$1`
+	rows, err := conn.Query(d.Ctx, sql, userid)
+	if err != nil {
+		e := fmt.Errorf("failed to query withdrawals table: %s", err.Error())
+		return nil, e
+	}
+	defer rows.Close()
+
+	var withdrawals []structs.Withdraw
+	for rows.Next() {
+		var orderid int
+		var amount int
+		var processed_at int64
+
+		if err := rows.Scan(&amount, &orderid, &processed_at); err != nil {
+			e := fmt.Errorf("failed to scan row from withdrawals table: %s", err.Error())
+			return nil, e
+		}
+		withdraw := structs.Withdraw{
+			Order:       fmt.Sprint(orderid),
+			Sum:         amount,
+			ProcessedAt: time.Unix(processed_at, 0).Format("2006-01-02T15:04:05-07:00")}
+		withdrawals = append(withdrawals, withdraw)
+	}
+
+	if err := rows.Err(); err != nil {
+		e := fmt.Errorf("error(s) occured during withdrawals table scanning: %s", err.Error())
+		return nil, e
+	}
+
+	return withdrawals, nil
+
+}
+
 func (d *DBConnector) CreateTables() error {
 	conn, err := d.Pool.Acquire(d.Ctx)
 	defer conn.Release()
@@ -359,11 +407,11 @@ func (d *DBConnector) CreateTables() error {
 		amount int NOT NULL,
 		processed_at bigint,
 		orderid integer,
-		userid integer REFERENCES users (id);`
+		userid integer REFERENCES users (id));`
 
 	_, err = conn.Exec(d.Ctx, withdrawalsSQL)
 	if err != nil {
-		return fmt.Errorf("cant create orders table: %s", err.Error())
+		return fmt.Errorf("cant create orders withdrawals: %s", err.Error())
 	}
 
 	return nil

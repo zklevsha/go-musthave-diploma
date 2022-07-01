@@ -210,7 +210,7 @@ func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 		sendResponse(w, http.StatusNoContent, structs.Response{Message: "no orders were found"},
 			compressResponse, responseAsText)
 	}
-	sendOrdersResponse(w, http.StatusOK, orders, compressResponse)
+	sendResponseJson(w, http.StatusOK, orders, compressResponse)
 
 }
 
@@ -311,6 +311,30 @@ func (h *Handler) withdrawHandler(w http.ResponseWriter, r *http.Request) {
 		compressResponse, responseAsText)
 }
 
+func (h *Handler) getWithdrawalsHandler(w http.ResponseWriter, r *http.Request) {
+	_, compressResponse, responseAsText := getFlags(r)
+	userid, err := TokenGetUserId(r, h.key)
+	if err != nil {
+		e := fmt.Sprintf("authentication failure: %s", err.Error())
+		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
+			compressResponse, responseAsText)
+		return
+	}
+	withdrawals, err := h.Storage.GetWithdrawls(userid)
+	if err != nil {
+		e := fmt.Sprintf("cant get withdrawals: %s", err.Error())
+		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+			compressResponse, responseAsText)
+		return
+	}
+	if len(withdrawals) == 0 {
+		sendResponse(w, http.StatusNoContent, structs.Response{Message: "no withdrawals were found"},
+			compressResponse, responseAsText)
+	}
+	sendResponseJson(w, http.StatusOK, withdrawals, compressResponse)
+
+}
+
 func GetHandler(c config.ServerConfig, ctx context.Context, store interfaces.Storage) http.Handler {
 	r := mux.NewRouter()
 	h := Handler{Storage: store, key: c.Key}
@@ -343,5 +367,9 @@ func GetHandler(c config.ServerConfig, ctx context.Context, store interfaces.Sto
 	r.HandleFunc("/api/user/balance/withdraw", h.withdrawHandler).
 		Methods("POST").
 		Headers("Content-Type", "application/json")
+
+	// get withdrawals
+	r.HandleFunc("/api/user/withdrawals", h.getWithdrawalsHandler).
+		Methods("GET")
 	return r
 }

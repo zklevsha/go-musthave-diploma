@@ -67,9 +67,9 @@ func sendResponse(w http.ResponseWriter, code int,
 	w.Write(responseBody)
 }
 
-func sendOrdersResponse(w http.ResponseWriter, code int,
-	orders []structs.Order, compress bool) {
-	responseBody, err := serializer.EncodeOrdersResponse(orders, compress)
+func sendResponseJson(w http.ResponseWriter, code int,
+	str interface{}, compress bool) {
+	responseBody, err := serializer.EncodeResponse(str, compress)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("failed to encode server response: %s", err.Error())))
