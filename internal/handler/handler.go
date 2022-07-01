@@ -281,21 +281,6 @@ func (h *Handler) withdrawHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userHasOrder, err := h.Storage.UserHasOrder(userid, orderid)
-	if err != nil {
-		e := fmt.Sprintf("failed to check if user has order: %s", err.Error())
-		sendResponse(w, http.StatusInternalServerError, structs.Response{Error: e},
-			compressResponse, responseAsText)
-		return
-	}
-
-	if !userHasOrder {
-		e := "order does not registered for current user"
-		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
-			compressResponse, responseAsText)
-		return
-	}
-
 	balance, err := h.Storage.GetUserBalance(userid)
 	if err != nil {
 		e := fmt.Sprintf("failed to get users`s balance: %s", err.Error())

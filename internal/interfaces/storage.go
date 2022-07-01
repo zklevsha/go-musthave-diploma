@@ -14,5 +14,4 @@ type Storage interface {
 	SetOrderAccrual(id int, accrual int) (int64, error)
 	GetUserBalance(id int) (structs.Balance, error)
 	Withdraw(userid int, winthdraw structs.Withdraw) error
-	UserHasOrder(userid int, orderid int) (bool, error)
 }
