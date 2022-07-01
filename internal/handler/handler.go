@@ -27,7 +27,7 @@ type Handler struct {
 func (h *Handler) rootHandler(w http.ResponseWriter, r *http.Request) {
 	_, compress, asText := getFlags(r)
 
-	_, err := TokenGetUserId(r, h.key)
+	_, err := TokenGetUserID(r, h.key)
 	if err != nil {
 		e := fmt.Sprintf("Authentication failure: %s", err.Error())
 		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
@@ -135,7 +135,7 @@ func (h *Handler) loginHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) createOrderHandler(w http.ResponseWriter, r *http.Request) {
 	requestCompressed, compressResponse, responseAsText := getFlags(r)
 
-	userid, err := TokenGetUserId(r, h.key)
+	userid, err := TokenGetUserID(r, h.key)
 	if err != nil {
 		e := fmt.Sprintf("Authentication failure: %s", err.Error())
 		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
@@ -192,7 +192,7 @@ func (h *Handler) createOrderHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 	_, compressResponse, responseAsText := getFlags(r)
-	userid, err := TokenGetUserId(r, h.key)
+	userid, err := TokenGetUserID(r, h.key)
 	if err != nil {
 		e := fmt.Sprintf("authentication failure: %s", err.Error())
 		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
@@ -216,7 +216,7 @@ func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) getBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	_, compressResponse, responseAsText := getFlags(r)
-	userid, err := TokenGetUserId(r, h.key)
+	userid, err := TokenGetUserID(r, h.key)
 	if err != nil {
 		e := fmt.Sprintf("authentication failure: %s", err.Error())
 		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
@@ -235,7 +235,7 @@ func (h *Handler) getBalanceHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) withdrawHandler(w http.ResponseWriter, r *http.Request) {
 	requestCompressed, compressResponse, responseAsText := getFlags(r)
 
-	userid, err := TokenGetUserId(r, h.key)
+	userid, err := TokenGetUserID(r, h.key)
 	if err != nil {
 		e := fmt.Sprintf("authentication failure: %s", err.Error())
 		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
@@ -313,7 +313,7 @@ func (h *Handler) withdrawHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) getWithdrawalsHandler(w http.ResponseWriter, r *http.Request) {
 	_, compressResponse, responseAsText := getFlags(r)
-	userid, err := TokenGetUserId(r, h.key)
+	userid, err := TokenGetUserID(r, h.key)
 	if err != nil {
 		e := fmt.Sprintf("authentication failure: %s", err.Error())
 		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},

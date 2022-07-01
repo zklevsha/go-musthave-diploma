@@ -38,7 +38,7 @@ func getErrStatusCode(err error) int {
 	}
 }
 
-func TokenGetUserId(r *http.Request, key string) (int, error) {
+func TokenGetUserID(r *http.Request, key string) (int, error) {
 	auth := r.Header.Get("Authorization")
 	if auth == "" {
 		return -1, errors.New("authorization header is not set")
