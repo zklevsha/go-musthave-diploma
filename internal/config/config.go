@@ -73,7 +73,7 @@ func GetConfig() ServerConfig {
 		"how often server will get order`s status/accrual from accrual system")
 	flag.StringVar(&dsnF, "d", "",
 		"database connection string (postgres://username:password@localhost:5432/database_name)")
-	flag.StringVar(&keyF, "k", "secret",
+	flag.StringVar(&keyF, "k", secretDefault,
 		"server key (used for salt user`s passwords and jwt auth)")
 	flag.Parse()
 
