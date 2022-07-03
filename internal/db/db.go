@@ -174,7 +174,7 @@ func (d *DBConnector) GetOrders(userid int) ([]structs.Order, error) {
 	for rows.Next() {
 		var orderNumber int
 		var status string
-		var accrual *int
+		var accrual *float32
 		var createdTS int64
 
 		if err := rows.Scan(&orderNumber, &status, &accrual, &createdTS); err != nil {
@@ -254,7 +254,7 @@ func (d *DBConnector) SetOrderStatus(id int, status string) (int64, error) {
 	return count, nil
 }
 
-func (d *DBConnector) SetOrderAccrual(id int, accrual int) (int64, error) {
+func (d *DBConnector) SetOrderAccrual(id int, accrual float32) (int64, error) {
 	err := d.checkInit()
 	if err != nil {
 		return -1, err
@@ -288,7 +288,7 @@ func (d *DBConnector) GetUserBalance(id int) (structs.Balance, error) {
 	sql := `SELECT COALESCE(SUM(accrual),0) AS acc_total
 			FROM orders
 			WHERE userid = $1;`
-	var accTotal int
+	var accTotal float32
 	row := conn.QueryRow(d.Ctx, sql, id)
 	err = row.Scan(&accTotal)
 	if err != nil {
@@ -299,7 +299,7 @@ func (d *DBConnector) GetUserBalance(id int) (structs.Balance, error) {
 	sql = `SELECT COALESCE(SUM(amount),0) AS withdrawals_total
 		   FROM withdrawals
 		   WHERE userid = $1`
-	var wdTotal int
+	var wdTotal float32
 	row = conn.QueryRow(d.Ctx, sql, id)
 	err = row.Scan(&wdTotal)
 	if err != nil {
@@ -354,7 +354,7 @@ func (d *DBConnector) GetWithdrawls(userid int) ([]structs.Withdraw, error) {
 	var withdrawals []structs.Withdraw
 	for rows.Next() {
 		var orderid int
-		var amount int
+		var amount float32
 		var processedAt int64
 
 		if err := rows.Scan(&amount, &orderid, &processedAt); err != nil {
@@ -397,7 +397,7 @@ func (d *DBConnector) CreateTables() error {
 	ordersSQL := `CREATE TABLE IF NOT EXISTS orders (
 		id bigint PRIMARY KEY,
 		status VARCHAR (15) DEFAULT 'NEW',
-		accrual int,
+		accrual real,
 		created_ts bigint,
 		userid integer REFERENCES users (id));`
 
@@ -408,7 +408,7 @@ func (d *DBConnector) CreateTables() error {
 
 	withdrawalsSQL := `CREATE TABLE IF NOT EXISTS withdrawals (
 		id serial PRIMARY KEY,
-		amount int NOT NULL,
+		amount real NOT NULL,
 		processed_at bigint,
 		orderid integer,
 		userid integer REFERENCES users (id));`

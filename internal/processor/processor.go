@@ -87,7 +87,7 @@ func (p Processor) processOrder(id int) error {
 		}
 	}
 	if order.Status == "PROCESSED" && order.Accrual != nil {
-		log.Printf("INFO proccessor setting order`s accural value (%d)",
+		log.Printf("INFO proccessor setting order`s accural value (%f)",
 			*order.Accrual)
 		rowsAffected, err := p.Storage.SetOrderAccrual(id, *order.Accrual)
 		if err != nil {

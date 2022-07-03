@@ -218,7 +218,7 @@ func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 		sendResponse(w, http.StatusNoContent, structs.Response{Message: "no orders were found"},
 			compressResponse)
 	}
-	sendResponseJSON(w, http.StatusOK, orders, compressResponse)
+	sendResponse(w, http.StatusOK, orders, compressResponse)
 
 }
 
@@ -299,7 +299,7 @@ func (h *Handler) withdrawHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if balance.Current < withdraw.Sum {
-		e := fmt.Sprintf("winthdraw sum exceeds current balance (%d)", balance.Current)
+		e := fmt.Sprintf("winthdraw sum exceeds current balance (%f)", balance.Current)
 		sendResponse(w, http.StatusPaymentRequired,
 			structs.Response{Error: e},
 			compressResponse)
@@ -339,7 +339,7 @@ func (h *Handler) getWithdrawalsHandler(w http.ResponseWriter, r *http.Request) 
 		sendResponse(w, http.StatusNoContent, structs.Response{Message: "no withdrawals were found"},
 			compressResponse)
 	}
-	sendResponseJSON(w, http.StatusOK, withdrawals, compressResponse)
+	sendResponse(w, http.StatusOK, withdrawals, compressResponse)
 
 }
 
