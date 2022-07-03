@@ -25,35 +25,39 @@ func (d *DBConnector) checkInit() error {
 	return nil
 }
 
-func (d *DBConnector) Register(login string, password string) error {
+func (d *DBConnector) Register(login string, password string) (int, error) {
 	err := d.checkInit()
 	if err != nil {
-		return err
+		return -1, err
 	}
 
 	conn, err := d.Pool.Acquire(d.Ctx)
 	if err != nil {
-		return fmt.Errorf("failed to acquire connection: %s", err.Error())
+		return -1, fmt.Errorf("failed to acquire connection: %s", err.Error())
 	}
 	defer conn.Release()
 
 	// Check if user don`t exists
 	var counter int
 	sql := `select count(id) from users where login=$1;`
-	row := conn.QueryRow(d.Ctx, sql, login)
-	err = row.Scan(&counter)
+	err = conn.QueryRow(d.Ctx, sql, login).Scan(&counter)
 	if err != nil {
-		return fmt.Errorf("failed to query users table: %s", err.Error())
+		return -1, fmt.Errorf("failed to query users table: %s", err.Error())
 	}
 	if counter != 0 {
-		return structs.ErrUserAlreadyExists
+		return -1, structs.ErrUserAlreadyExists
 	}
 
 	// adding new user
+	var id int
 	sql = `INSERT INTO users (login, password)
-		   VALUES($1, $2);`
-	_, err = conn.Exec(d.Ctx, sql, login, password)
-	return err
+		   VALUES($1, $2)
+		   RETURNING id;`
+	err = conn.QueryRow(d.Ctx, sql, login, password).Scan(&id)
+	if err != nil {
+		return -1, fmt.Errorf("failed to create user id DB: %s", err.Error())
+	}
+	return id, nil
 }
 
 func (d *DBConnector) GetUserID(creds structs.Credentials) (int, error) {

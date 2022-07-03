@@ -68,19 +68,27 @@ func (h *Handler) registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Creating user
 	hashedPwd := hash.Sign(h.key, creds.Password)
-	err = h.Storage.Register(creds.Login, hashedPwd)
-	var respCode int
-	resp := structs.Response{}
+	id, err := h.Storage.Register(creds.Login, hashedPwd)
 	if err != nil {
-		respCode = getErrStatusCode(err)
-		resp.Error = err.Error()
-	} else {
-		respCode = http.StatusOK
-		resp.Message = "user was created"
+		sendResponse(w, getErrStatusCode(err),
+			structs.Response{Error: err.Error()}, compressResponse, responseAsText)
+		return
 	}
-	sendResponse(w, respCode, resp, compressResponse, responseAsText)
 
+	// Generating jwt
+	token, err := jwt.Generate(id, h.key)
+	if err != nil {
+		e := fmt.Sprintf("failed to generate jwt token: %s", err.Error())
+		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
+			compressResponse, responseAsText)
+		return
+	}
+
+	w.Header().Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	sendResponse(w, http.StatusOK, structs.Response{Message: "user was created"},
+		compressResponse, responseAsText)
 }
 
 func (h *Handler) loginHandler(w http.ResponseWriter, r *http.Request) {
