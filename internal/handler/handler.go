@@ -127,8 +127,8 @@ func (h *Handler) loginHandler(w http.ResponseWriter, r *http.Request) {
 			compressResponse, responseAsText)
 		return
 	}
-
-	sendResponse(w, http.StatusOK, structs.Response{Token: token},
+	w.Header().Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	sendResponse(w, http.StatusOK, structs.Response{Message: "Authentication successful"},
 		compressResponse, responseAsText)
 }
 
