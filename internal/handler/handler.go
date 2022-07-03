@@ -25,28 +25,28 @@ type Handler struct {
 }
 
 func (h *Handler) rootHandler(w http.ResponseWriter, r *http.Request) {
-	_, compress, asText := getFlags(r)
+	_, compress := getFlags(r)
 
 	_, err := TokenGetUserID(r, h.key)
 	if err != nil {
 		e := fmt.Sprintf("Authentication failure: %s", err.Error())
 		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
-			compress, asText)
+			compress)
 		return
 	}
 
 	resp := structs.Response{Message: "Server is working"}
-	sendResponse(w, http.StatusOK, resp, compress, asText)
+	sendResponse(w, http.StatusOK, resp, compress)
 }
 
 func (h *Handler) registerHandler(w http.ResponseWriter, r *http.Request) {
-	requestCompressed, compressResponse, responseAsText := getFlags(r)
+	requestCompressed, compressResponse := getFlags(r)
 
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		e := fmt.Sprintf("failed to read body: %s", err.Error())
 		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 	}
 
 	if requestCompressed {
@@ -54,7 +54,7 @@ func (h *Handler) registerHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			e := fmt.Sprintf("Failed to decompress request body: %s", err.Error())
 			sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
-				compressResponse, responseAsText)
+				compressResponse)
 			return
 		}
 	}
@@ -64,7 +64,7 @@ func (h *Handler) registerHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		e := fmt.Sprintf("failed to decode request body: %s", err.Error())
 		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 
@@ -73,7 +73,7 @@ func (h *Handler) registerHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := h.Storage.Register(creds.Login, hashedPwd)
 	if err != nil {
 		sendResponse(w, getErrStatusCode(err),
-			structs.Response{Error: err.Error()}, compressResponse, responseAsText)
+			structs.Response{Error: err.Error()}, compressResponse)
 		return
 	}
 
@@ -82,23 +82,23 @@ func (h *Handler) registerHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		e := fmt.Sprintf("failed to generate jwt token: %s", err.Error())
 		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 
-	w.Header().Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	w.Header().Set("Authorization", token)
 	sendResponse(w, http.StatusOK, structs.Response{Message: "user was created"},
-		compressResponse, responseAsText)
+		compressResponse)
 }
 
 func (h *Handler) loginHandler(w http.ResponseWriter, r *http.Request) {
-	requestCompressed, compressResponse, responseAsText := getFlags(r)
+	requestCompressed, compressResponse := getFlags(r)
 
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		e := fmt.Sprintf("failed to read body: %s", err.Error())
 		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 	}
 
 	if requestCompressed {
@@ -106,7 +106,7 @@ func (h *Handler) loginHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			e := fmt.Sprintf("Failed to decompress request body: %s", err.Error())
 			sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
-				compressResponse, responseAsText)
+				compressResponse)
 			return
 		}
 	}
@@ -116,7 +116,7 @@ func (h *Handler) loginHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		e := fmt.Sprintf("failed to decode request body: %s", err.Error())
 		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (h *Handler) loginHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		e := fmt.Sprintf("failed to authenticate user: %s", err.Error())
 		sendResponse(w, getErrStatusCode(err), structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 
@@ -132,22 +132,22 @@ func (h *Handler) loginHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		e := fmt.Sprintf("failed to generate jwt token: %s", err.Error())
 		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
-	w.Header().Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	w.Header().Set("Authorization", token)
 	sendResponse(w, http.StatusOK, structs.Response{Message: "Authentication successful"},
-		compressResponse, responseAsText)
+		compressResponse)
 }
 
 func (h *Handler) createOrderHandler(w http.ResponseWriter, r *http.Request) {
-	requestCompressed, compressResponse, responseAsText := getFlags(r)
+	requestCompressed, compressResponse := getFlags(r)
 
 	userid, err := TokenGetUserID(r, h.key)
 	if err != nil {
 		e := fmt.Sprintf("Authentication failure: %s", err.Error())
 		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 
@@ -155,7 +155,7 @@ func (h *Handler) createOrderHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		e := fmt.Sprintf("failed to read body: %s", err.Error())
 		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 	}
 
 	if requestCompressed {
@@ -163,7 +163,7 @@ func (h *Handler) createOrderHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			e := fmt.Sprintf("Failed to decompress request body: %s", err.Error())
 			sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
-				compressResponse, responseAsText)
+				compressResponse)
 			return
 		}
 	}
@@ -171,83 +171,83 @@ func (h *Handler) createOrderHandler(w http.ResponseWriter, r *http.Request) {
 	orderid, err := strconv.Atoi(string(b))
 	if err != nil {
 		sendResponse(w, http.StatusBadRequest, structs.Response{Error: "invalid request format"},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 
 	if !luhn.Valid(orderid) {
 		sendResponse(w, http.StatusUnprocessableEntity, structs.Response{Error: "invalid orderid value"},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 
 	dbChanged, err := h.Storage.CreateOrder(userid, orderid)
 	if err != nil {
 		sendResponse(w, getErrStatusCode(err), structs.Response{Error: err.Error()},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 	if dbChanged {
 		sendResponse(w, http.StatusAccepted, structs.Response{Message: "order created"},
-			compressResponse, responseAsText)
+			compressResponse)
 
 	} else {
 		sendResponse(w, http.StatusOK, structs.Response{Message: "order already exists"},
-			compressResponse, responseAsText)
+			compressResponse)
 	}
 
 }
 
 func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
-	_, compressResponse, responseAsText := getFlags(r)
+	_, compressResponse := getFlags(r)
 	userid, err := TokenGetUserID(r, h.key)
 	if err != nil {
 		e := fmt.Sprintf("authentication failure: %s", err.Error())
 		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 	orders, err := h.Storage.GetOrders(userid)
 	if err != nil {
 		e := fmt.Sprintf("cant get orders: %s", err.Error())
 		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 	if len(orders) == 0 {
 		sendResponse(w, http.StatusNoContent, structs.Response{Message: "no orders were found"},
-			compressResponse, responseAsText)
+			compressResponse)
 	}
 	sendResponseJSON(w, http.StatusOK, orders, compressResponse)
 
 }
 
 func (h *Handler) getBalanceHandler(w http.ResponseWriter, r *http.Request) {
-	_, compressResponse, responseAsText := getFlags(r)
+	_, compressResponse := getFlags(r)
 	userid, err := TokenGetUserID(r, h.key)
 	if err != nil {
 		e := fmt.Sprintf("authentication failure: %s", err.Error())
 		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 
 	balance, err := h.Storage.GetUserBalance(userid)
 	if err != nil {
 		sendResponse(w, http.StatusInternalServerError, structs.Response{Error: err.Error()},
-			compressResponse, responseAsText)
+			compressResponse)
 	}
-	sendResponse(w, http.StatusOK, balance, compressResponse, false)
+	sendResponse(w, http.StatusOK, balance, compressResponse)
 }
 
 func (h *Handler) withdrawHandler(w http.ResponseWriter, r *http.Request) {
-	requestCompressed, compressResponse, responseAsText := getFlags(r)
+	requestCompressed, compressResponse := getFlags(r)
 
 	userid, err := TokenGetUserID(r, h.key)
 	if err != nil {
 		e := fmt.Sprintf("authentication failure: %s", err.Error())
 		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 
@@ -255,7 +255,7 @@ func (h *Handler) withdrawHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		e := fmt.Sprintf("failed to read body: %s", err.Error())
 		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 	}
 
 	if requestCompressed {
@@ -263,7 +263,7 @@ func (h *Handler) withdrawHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			e := fmt.Sprintf("Failed to decompress request body: %s", err.Error())
 			sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
-				compressResponse, responseAsText)
+				compressResponse)
 			return
 		}
 	}
@@ -273,19 +273,19 @@ func (h *Handler) withdrawHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		e := fmt.Sprintf("failed to decode request body: %s", err.Error())
 		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 
 	orderid, err := strconv.Atoi(string(withdraw.Order))
 	if err != nil {
 		sendResponse(w, http.StatusBadRequest, structs.Response{Error: "invalid order value"},
-			compressResponse, responseAsText)
+			compressResponse)
 	}
 
 	if !luhn.Valid(orderid) {
 		sendResponse(w, http.StatusUnprocessableEntity, structs.Response{Error: "invalid order value"},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 
@@ -294,7 +294,7 @@ func (h *Handler) withdrawHandler(w http.ResponseWriter, r *http.Request) {
 		e := fmt.Sprintf("failed to get users`s balance: %s", err.Error())
 		sendResponse(w, http.StatusInternalServerError,
 			structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 
@@ -302,7 +302,7 @@ func (h *Handler) withdrawHandler(w http.ResponseWriter, r *http.Request) {
 		e := fmt.Sprintf("winthdraw sum exceeds current balance (%d)", balance.Current)
 		sendResponse(w, http.StatusPaymentRequired,
 			structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 
@@ -310,34 +310,34 @@ func (h *Handler) withdrawHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		e := fmt.Sprintf("failed to withdraw: %s", err.Error())
 		sendResponse(w, http.StatusInternalServerError, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 
 	sendResponse(w, http.StatusOK,
 		structs.Response{Message: "withdraw reqest was proccessed"},
-		compressResponse, responseAsText)
+		compressResponse)
 }
 
 func (h *Handler) getWithdrawalsHandler(w http.ResponseWriter, r *http.Request) {
-	_, compressResponse, responseAsText := getFlags(r)
+	_, compressResponse := getFlags(r)
 	userid, err := TokenGetUserID(r, h.key)
 	if err != nil {
 		e := fmt.Sprintf("authentication failure: %s", err.Error())
 		sendResponse(w, http.StatusUnauthorized, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 	withdrawals, err := h.Storage.GetWithdrawls(userid)
 	if err != nil {
 		e := fmt.Sprintf("cant get withdrawals: %s", err.Error())
 		sendResponse(w, http.StatusBadRequest, structs.Response{Error: e},
-			compressResponse, responseAsText)
+			compressResponse)
 		return
 	}
 	if len(withdrawals) == 0 {
 		sendResponse(w, http.StatusNoContent, structs.Response{Message: "no withdrawals were found"},
-			compressResponse, responseAsText)
+			compressResponse)
 	}
 	sendResponseJSON(w, http.StatusOK, withdrawals, compressResponse)
 

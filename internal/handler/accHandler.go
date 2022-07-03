@@ -16,26 +16,26 @@ import (
 type accHandler struct{}
 
 func (a *accHandler) rootHandler(w http.ResponseWriter, r *http.Request) {
-	_, compress, asText := getFlags(r)
-	tooManyReq(w, 10, compress, asText)
+	_, compress := getFlags(r)
+	tooManyReq(w, 10, compress)
 	resp := structs.Response{Message: "Server is working"}
-	sendResponse(w, http.StatusOK, resp, compress, asText)
+	sendResponse(w, http.StatusOK, resp, compress)
 }
 
 func (a *accHandler) orderHandler(w http.ResponseWriter, r *http.Request) {
-	_, compress, asText := getFlags(r)
-	tooManyReq(w, 10, compress, asText)
+	_, compress := getFlags(r)
+	tooManyReq(w, 10, compress)
 	v := mux.Vars(r)
 	order, err := strconv.Atoi(v["order"])
 	if err != nil {
 		sendResponse(w, http.StatusBadRequest,
 			structs.Response{Error: fmt.Sprintf("cant convert %s to int", v["order"])},
-			compress, asText)
+			compress)
 		return
 	}
 	if !luhn.Valid(order) {
 		sendResponse(w, http.StatusUnprocessableEntity, structs.Response{Error: "invalid order number"},
-			compress, asText)
+			compress)
 		return
 	}
 
@@ -43,20 +43,20 @@ func (a *accHandler) orderHandler(w http.ResponseWriter, r *http.Request) {
 		accrual := order % 359
 		sendResponse(w, http.StatusOK,
 			structs.Order{Order: v["order"], Status: "PROCESSED", Accrual: &accrual},
-			compress, false)
+			compress)
 		return
 	}
 
 	switch rand.Intn(2) {
 	case 0:
 		sendResponse(w, http.StatusOK,
-			structs.Order{Order: v["order"], Status: "REGISTERED"}, compress, false)
+			structs.Order{Order: v["order"], Status: "REGISTERED"}, compress)
 	case 1:
 		sendResponse(w, http.StatusOK,
-			structs.Order{Order: v["order"], Status: "PROCESSING"}, compress, false)
+			structs.Order{Order: v["order"], Status: "PROCESSING"}, compress)
 	case 2:
 		sendResponse(w, http.StatusOK,
-			structs.Order{Order: v["order"], Status: "INVALID"}, compress, false)
+			structs.Order{Order: v["order"], Status: "INVALID"}, compress)
 	}
 }
 

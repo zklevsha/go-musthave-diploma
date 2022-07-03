@@ -13,16 +13,13 @@ import (
 	"github.com/zklevsha/go-musthave-diploma/internal/structs"
 )
 
-func getFlags(r *http.Request) (bool, bool, bool) {
+func getFlags(r *http.Request) (bool, bool) {
 	requestCompressed :=
 		strings.Contains(strings.Join(r.Header["Content-Encoding"], ","), "gzip")
 	compressResponse :=
 		strings.Contains(strings.Join(r.Header["Accept-Encoding"], ","), "gzip")
-	responseAsText :=
-		!strings.Contains(strings.Join(r.Header["Accept"], ","), "application/json") &&
-			!strings.Contains(strings.Join(r.Header["Accept"], ","), "*/*")
 
-	return requestCompressed, compressResponse, responseAsText
+	return requestCompressed, compressResponse
 }
 
 func getErrStatusCode(err error) int {
@@ -52,8 +49,8 @@ func TokenGetUserID(r *http.Request, key string) (int, error) {
 }
 
 func sendResponse(w http.ResponseWriter, code int,
-	resp interfaces.ServerResponse, compress bool, asText bool) {
-	responseBody, err := serializer.EncodeServerResponse(resp, compress, asText)
+	resp interfaces.ServerResponse, compress bool) {
+	responseBody, err := serializer.EncodeServerResponse(resp, compress, false)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("failed to encode server response: %s", err.Error())))
@@ -82,12 +79,12 @@ func sendResponseJSON(w http.ResponseWriter, code int,
 	w.Write(responseBody)
 }
 
-func tooManyReq(w http.ResponseWriter, chance int, compress bool, asText bool) {
+func tooManyReq(w http.ResponseWriter, chance int, compress bool) {
 	if chance < rand.Intn(100) {
 		return
 	}
 	w.Header().Set("Retry-After", "60")
 	sendResponse(w, http.StatusTooManyRequests,
 		structs.Response{Error: "No more than N requests per minute allowed"},
-		compress, asText)
+		compress)
 }
