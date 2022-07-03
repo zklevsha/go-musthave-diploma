@@ -50,6 +50,8 @@ func TokenGetUserID(r *http.Request, key string) (int, error) {
 
 func sendResponse(w http.ResponseWriter, code int,
 	resp interfaces.ServerResponse, compress bool) {
+	w.Header().Set("Content-Type", "application/json")
+
 	responseBody, err := serializer.EncodeServerResponse(resp, compress, false)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -66,6 +68,8 @@ func sendResponse(w http.ResponseWriter, code int,
 
 func sendResponseJSON(w http.ResponseWriter, code int,
 	str interface{}, compress bool) {
+	w.Header().Set("Content-Type", "application/json")
+
 	responseBody, err := serializer.EncodeResponse(str, compress)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
