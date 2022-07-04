@@ -86,7 +86,7 @@ func (h *Handler) registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Authorization", token)
+	w.Header().Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	sendResponse(w, http.StatusOK, structs.Response{Message: "user was created"},
 		compressResponse)
 }
