@@ -11,7 +11,7 @@ type Storage interface {
 	GetOrders(userid int) ([]structs.Order, error)
 	GetUnprocessedOrders() ([]int, error)
 	SetOrderStatus(id int, status string) (int64, error)
-	SetOrderAccrual(id int, accrual float32) (int64, error)
+	SetOrderAccrual(id int, accrual float64) (int64, error)
 	GetUserBalance(id int) (structs.Balance, error)
 	Withdraw(userid int, winthdraw structs.Withdraw) error
 	GetWithdrawls(userid int) ([]structs.Withdraw, error)

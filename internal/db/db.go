@@ -175,7 +175,7 @@ func (d *DBConnector) GetOrders(userid int) ([]structs.Order, error) {
 	for rows.Next() {
 		var orderNumber int
 		var status string
-		var accrual *float32
+		var accrual *float64
 		var createdTS int64
 
 		if err := rows.Scan(&orderNumber, &status, &accrual, &createdTS); err != nil {
@@ -255,7 +255,7 @@ func (d *DBConnector) SetOrderStatus(id int, status string) (int64, error) {
 	return count, nil
 }
 
-func (d *DBConnector) SetOrderAccrual(id int, accrual float32) (int64, error) {
+func (d *DBConnector) SetOrderAccrual(id int, accrual float64) (int64, error) {
 	err := d.checkInit()
 	if err != nil {
 		return -1, err
@@ -289,7 +289,7 @@ func (d *DBConnector) GetUserBalance(id int) (structs.Balance, error) {
 	sql := `SELECT COALESCE(SUM(accrual),0) AS acc_total
 			FROM orders
 			WHERE userid = $1;`
-	var accTotal float32
+	var accTotal float64
 	row := conn.QueryRow(d.Ctx, sql, id)
 	err = row.Scan(&accTotal)
 	if err != nil {
@@ -300,7 +300,7 @@ func (d *DBConnector) GetUserBalance(id int) (structs.Balance, error) {
 	sql = `SELECT COALESCE(SUM(amount),0) AS withdrawals_total
 		   FROM withdrawals
 		   WHERE userid = $1`
-	var wdTotal float32
+	var wdTotal float64
 	row = conn.QueryRow(d.Ctx, sql, id)
 	err = row.Scan(&wdTotal)
 	if err != nil {
@@ -355,7 +355,7 @@ func (d *DBConnector) GetWithdrawls(userid int) ([]structs.Withdraw, error) {
 	var withdrawals []structs.Withdraw
 	for rows.Next() {
 		var orderid int
-		var amount float32
+		var amount float64
 		var processedAt int64
 
 		if err := rows.Scan(&amount, &orderid, &processedAt); err != nil {

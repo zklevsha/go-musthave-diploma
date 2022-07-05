@@ -40,7 +40,7 @@ func (a *accHandler) orderHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if rand.Intn(10)%2 == 0 {
-		accrual := float32(order % 359)
+		accrual := float64(order % 359)
 		sendResponse(w, http.StatusOK,
 			structs.Order{Order: v["order"], Status: "PROCESSED", Accrual: &accrual},
 			compress)
