@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/zklevsha/go-musthave-diploma/internal/helpers"
 	"github.com/zklevsha/go-musthave-diploma/internal/interfaces"
 	"github.com/zklevsha/go-musthave-diploma/internal/structs"
 )
@@ -117,6 +118,12 @@ func (p Processor) GetOrderAccrual(orderID int) (structs.Order, error) {
 	err = json.NewDecoder(resp.Body).Decode(&order)
 	if err != nil {
 		return structs.Order{}, err
+	}
+	// round to 2 digits
+	var fixed float32
+	if order.Accrual != nil {
+		fixed = helpers.ToFixed(*order.Accrual, 2)
+		order.Accrual = &fixed
 	}
 	return order, nil
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/zklevsha/go-musthave-diploma/internal/helpers"
 	"github.com/zklevsha/go-musthave-diploma/internal/structs"
 )
 
@@ -306,7 +307,7 @@ func (d *DBConnector) GetUserBalance(id int) (structs.Balance, error) {
 		return structs.Balance{}, fmt.Errorf("failed to query withdrawals table: %s", err.Error())
 	}
 
-	balance := structs.Balance{Current: accTotal - wdTotal, Withdrawn: wdTotal}
+	balance := structs.Balance{Current: helpers.ToFixed(accTotal-wdTotal, 2), Withdrawn: helpers.ToFixed(wdTotal, 2)}
 	return balance, nil
 }
 
