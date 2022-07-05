@@ -410,7 +410,7 @@ func (d *DBConnector) CreateTables() error {
 		id serial PRIMARY KEY,
 		amount real NOT NULL,
 		processed_at bigint,
-		orderid integer,
+		orderid bigint,
 		userid integer REFERENCES users (id));`
 
 	_, err = conn.Exec(d.Ctx, withdrawalsSQL)
