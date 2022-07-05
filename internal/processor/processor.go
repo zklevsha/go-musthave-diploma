@@ -119,10 +119,10 @@ func (p Processor) GetOrderAccrual(orderID int) (structs.Order, error) {
 	if err != nil {
 		return structs.Order{}, err
 	}
-	// round to 2 digits
+	// round to 5 digits
 	var fixed float32
 	if order.Accrual != nil {
-		fixed = helpers.ToFixed(*order.Accrual, 5)
+		fixed = helpers.RoundFloat(*order.Accrual, 5)
 		order.Accrual = &fixed
 	}
 	return order, nil
