@@ -306,8 +306,8 @@ func (d *DBConnector) GetUserBalance(id int) (structs.Balance, error) {
 	if err != nil {
 		return structs.Balance{}, fmt.Errorf("failed to query withdrawals table: %s", err.Error())
 	}
-
-	balance := structs.Balance{Current: helpers.ToFixed(accTotal-wdTotal, 2), Withdrawn: helpers.ToFixed(wdTotal, 2)}
+	// round to 5 digits
+	balance := structs.Balance{Current: helpers.ToFixed(accTotal-wdTotal, 5), Withdrawn: helpers.ToFixed(wdTotal, 5)}
 	return balance, nil
 }
 
