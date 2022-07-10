@@ -1,14 +1,15 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
 	"strings"
 
+	"github.com/zklevsha/go-musthave-diploma/internal/archive"
 	"github.com/zklevsha/go-musthave-diploma/internal/jwt"
-	"github.com/zklevsha/go-musthave-diploma/internal/serializer"
 	"github.com/zklevsha/go-musthave-diploma/internal/structs"
 )
 
@@ -47,11 +48,28 @@ func TokenGetUserID(r *http.Request, key string) (int, error) {
 	return jwt.GetUserID(token, key)
 }
 
+func encodeResponse(str interface{}, compress bool) ([]byte, error) {
+	resp, err := json.Marshal(str)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode server response to json %s", err.Error())
+	}
+
+	if !compress {
+		return resp, nil
+	}
+
+	compressed, err := archive.Compress(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compress server response %s", err.Error())
+	}
+	return compressed, nil
+}
+
 func sendResponse(w http.ResponseWriter, r *http.Request, code int,
 	resp interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	_, compress := getFlags(r)
-	responseBody, err := serializer.EncodeResponse(resp, compress)
+	responseBody, err := encodeResponse(resp, compress)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("failed to encode server response: %s", err.Error())))
