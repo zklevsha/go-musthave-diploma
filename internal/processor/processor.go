@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/zklevsha/go-musthave-diploma/internal/helpers"
 	"github.com/zklevsha/go-musthave-diploma/internal/interfaces"
 	"github.com/zklevsha/go-musthave-diploma/internal/structs"
 )
@@ -122,7 +121,7 @@ func (p Processor) GetOrderAccrual(orderID int) (structs.Order, error) {
 	// round to 5 digits
 	var fixed float64
 	if order.Accrual != nil {
-		fixed = helpers.RoundFloat(*order.Accrual, 5)
+		fixed = roundFloat(*order.Accrual, 5)
 		order.Accrual = &fixed
 	}
 	return order, nil

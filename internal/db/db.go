@@ -401,7 +401,7 @@ func (d *DBConnector) CreateTables() error {
 		id bigint PRIMARY KEY,
 		status VARCHAR (15) DEFAULT 'NEW',
 		accrual real,
-		created_ts bigint,
+		created_ts bigint NOT NULL,
 		userid integer REFERENCES users (id));`
 
 	_, err = conn.Exec(d.Ctx, ordersSQL)
@@ -412,8 +412,8 @@ func (d *DBConnector) CreateTables() error {
 	withdrawalsSQL := `CREATE TABLE IF NOT EXISTS withdrawals (
 		id serial PRIMARY KEY,
 		amount real NOT NULL,
-		processed_at bigint,
-		orderid bigint,
+		processed_at bigint NOT NULL,
+		orderid bigint NOT NULL,
 		userid integer REFERENCES users (id));`
 
 	_, err = conn.Exec(d.Ctx, withdrawalsSQL)
