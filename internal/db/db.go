@@ -84,6 +84,9 @@ func (d *DBConnector) GetUserID(creds structs.Credentials) (int, error) {
 }
 
 func (d *DBConnector) Init() error {
+	if d.initalized {
+		return nil
+	}
 	p, err := pgxpool.Connect(d.Ctx, d.DSN)
 	if err != nil {
 		return fmt.Errorf("unable to connect to database: %v", err)
