@@ -47,10 +47,10 @@ func TokenGetUserID(r *http.Request, key string) (int, error) {
 	return jwt.GetUserID(token, key)
 }
 
-func sendResponse(w http.ResponseWriter, code int,
-	resp interface{}, compress bool) {
+func sendResponse(w http.ResponseWriter, r *http.Request, code int,
+	resp interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-
+	_, compress := getFlags(r)
 	responseBody, err := serializer.EncodeResponse(resp, compress)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -65,12 +65,11 @@ func sendResponse(w http.ResponseWriter, code int,
 	w.Write(responseBody)
 }
 
-func tooManyReq(w http.ResponseWriter, chance int, compress bool) {
+func tooManyReq(w http.ResponseWriter, r *http.Request, chance int) {
 	if chance < rand.Intn(100) {
 		return
 	}
 	w.Header().Set("Retry-After", "60")
-	sendResponse(w, http.StatusTooManyRequests,
-		structs.Response{Error: "No more than N requests per minute allowed"},
-		compress)
+	sendResponse(w, r, http.StatusTooManyRequests,
+		structs.Response{Error: "No more than N requests per minute allowed"})
 }

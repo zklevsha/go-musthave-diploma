@@ -16,47 +16,42 @@ import (
 type accHandler struct{}
 
 func (a *accHandler) rootHandler(w http.ResponseWriter, r *http.Request) {
-	_, compress := getFlags(r)
-	tooManyReq(w, 10, compress)
+	tooManyReq(w, r, 10)
 	resp := structs.Response{Message: "Server is working"}
-	sendResponse(w, http.StatusOK, resp, compress)
+	sendResponse(w, r, http.StatusOK, resp)
 }
 
 func (a *accHandler) orderHandler(w http.ResponseWriter, r *http.Request) {
-	_, compress := getFlags(r)
-	tooManyReq(w, 10, compress)
+	tooManyReq(w, r, 10)
 	v := mux.Vars(r)
 	order, err := strconv.Atoi(v["order"])
 	if err != nil {
-		sendResponse(w, http.StatusBadRequest,
-			structs.Response{Error: fmt.Sprintf("cant convert %s to int", v["order"])},
-			compress)
+		sendResponse(w, r, http.StatusBadRequest,
+			structs.Response{Error: fmt.Sprintf("cant convert %s to int", v["order"])})
 		return
 	}
 	if !luhn.Valid(order) {
-		sendResponse(w, http.StatusUnprocessableEntity, structs.Response{Error: "invalid order number"},
-			compress)
+		sendResponse(w, r, http.StatusUnprocessableEntity, structs.Response{Error: "invalid order number"})
 		return
 	}
 
 	if rand.Intn(10)%2 == 0 {
 		accrual := float64(order % 359)
-		sendResponse(w, http.StatusOK,
-			structs.Order{Order: v["order"], Status: "PROCESSED", Accrual: &accrual},
-			compress)
+		sendResponse(w, r, http.StatusOK,
+			structs.Order{Order: v["order"], Status: "PROCESSED", Accrual: &accrual})
 		return
 	}
 
 	switch rand.Intn(2) {
 	case 0:
-		sendResponse(w, http.StatusOK,
-			structs.Order{Order: v["order"], Status: "REGISTERED"}, compress)
+		sendResponse(w, r, http.StatusOK,
+			structs.Order{Order: v["order"], Status: "REGISTERED"})
 	case 1:
-		sendResponse(w, http.StatusOK,
-			structs.Order{Order: v["order"], Status: "PROCESSING"}, compress)
+		sendResponse(w, r, http.StatusOK,
+			structs.Order{Order: v["order"], Status: "PROCESSING"})
 	case 2:
-		sendResponse(w, http.StatusOK,
-			structs.Order{Order: v["order"], Status: "INVALID"}, compress)
+		sendResponse(w, r, http.StatusOK,
+			structs.Order{Order: v["order"], Status: "INVALID"})
 	}
 }
 
